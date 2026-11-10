@@ -74,7 +74,8 @@ log "패키지 설치"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 # fonts-noto-cjk: 터미널 · 바탕화면의 한글 (앱 화면은 글꼴을 앱에 넣어 둠) — ARC-100 과 같음
-apt-get install -y -qq curl jq git ca-certificates libgtk-3-0 liblzma5 libstdc++6 libblkid1 smartmontools fonts-noto-cjk locales >/dev/null
+# gpiod: 앱이 머리 진입 포토센서(GPIO)를 gpiomon 으로 읽는다
+apt-get install -y -qq curl jq git ca-certificates libgtk-3-0 liblzma5 libstdc++6 libblkid1 smartmontools fonts-noto-cjk locales gpiod >/dev/null
 # 앱 실행 래퍼가 LANG=ko_KR.UTF-8 을 쓰므로 로캘을 만들어 둔다 (시스템 기본 언어는 바꾸지 않음)
 if ! locale -a 2>/dev/null | grep -qi '^ko_KR\.utf-\?8$'; then
   sed -i 's/^# *\(ko_KR\.UTF-8 UTF-8\)/\1/' /etc/locale.gen && locale-gen >/dev/null 2>&1 || warn "ko_KR.UTF-8 로캘 생성 실패"

@@ -36,6 +36,13 @@ addresses:
   bpc_gw: 1
   ch4: 200                  # Cubic Gasboard-2502 출하 기본 · 공용 주소 0xC8
 
+# 머리 진입 포토센서 (BEN300 PNP → 절연 입력 P3013-2 → RPi GPIO, 내부 풀업). 핀 · 극성은 설치 때 확인
+gpio:
+  enabled: true
+  chip: ""                  # 비우면 RP1 칩 자동 (gpiochip0 · gpiochip4)
+  head_line: 17             # BCM 번호 (헤더 11번 핀)
+  head_active_high: false   # 머리가 있을 때 HIGH 면 true (포토커플러 출력은 보통 LOW)
+
 # 운전
 warmup_min: 30
 sleep_rewarm_min: 10
@@ -65,15 +72,23 @@ night_window: "19:00~06:00"
 # 풍량 · 교정 (8 · 9장)
 pipe_area_m2: 0.0080073
 ff: 1.0
+# 교정 계수 처음 값 — 교정에 성공하면 앱이 데이터 폴더 calibration.json 에 새 계수를 남기고 그것을 먼저 쓴다
 f_ch4: 1.0
 f_co2: 1.0
 zero_raw_ch4: 0
 zero_raw_co2: 0
 f_low_ch4: 1.0
-# span_ch4_ppm: 실린더 인증값
-# span_co2_ppm: 실린더 인증값
-cal_time: "02:00"
-cal_valid_h: 48
+# Span 실린더 인증값 (합성공기 바탕) — 없으면 교정하지 않는다 (교정 만료 경보)
+# span_ch4_ppm: 500
+# span_co2_ppm: 5000
+cal_time: "02:00"          # 매일 자동 교정 (현지 시각)
+cal_valid_h: 48            # 마지막 성공 교정 뒤 이 시간이 지나면 교정 만료 (방문 무효)
+cal_gas_s: 90              # Zero · Span 주입 [GreenFeed 90 s]
+cal_pause_s: 60            # 가스 사이 대기 [GreenFeed 60 s]
+cal_purge_s: 60            # 마지막 퍼지
+cal_quiet_min: 5           # 최근 이 분 동안 머리 진입이 없어야 자동 교정 시작 (아니면 5분 뒤 다시, 최대 6회)
+zero_tol_ch4: 5            # Zero 허용 오차 ppm
+zero_tol_co2: 50
 
 # 경보 (12장)
 flow_filter_Ls: 26.99
