@@ -1,6 +1,6 @@
 # 메타닉스 설정 예시 — /etc/methanics/config.yaml 로 복사해 고칩니다 (명세 15장).
 # 설치 스크립트(Methanics-HMI-Public install.sh)가 처음 한 번 복사합니다. 업데이트해도 덮어쓰지 않습니다.
-# 장비 키가 들어가므로 권한은 앱 사용자만 읽기(0640)입니다.
+# 관리자 PIN 이 들어가므로 권한은 앱 사용자만 읽기(0640)입니다.
 # 없는 키는 기본값을 씁니다. 범위 밖 값은 범위 안으로 맞추고 설정 화면에 표시합니다.
 
 device_id: MTX-0001
@@ -86,17 +86,11 @@ update:
   auto: false            # true 면 check_interval_h 마다 확인 → 받기 → 적용(재시작). 교정 중에는 미룸
   check_interval_h: 6
 
-# IONTEC IoT 관제 서버 (WebSocket): 온라인 · 운전 상태 실시간 표시, 원격 진단, 원격 업데이트.
-# 처음 연결하면 대시보드에 「승인 대기」로 나타납니다 → 관리자가 승인. 장비 ID 는 rpi-<Pi 시리얼> 자동.
+# IONTEC IoT 관제 서버 (iontec-iot-server): 온라인 · 운전 상태 실시간 표시(WebSocket), 원격 진단, 원격 업데이트,
+# 1분 평균 측정 기록 업로드(대시보드 「측정 기록」 표 · 엑셀). 서버 v0.8.0 이상.
+# 처음 연결하면 대시보드에 「메타닉스 · 승인 대기」로 나타납니다 → 관리자가 승인. 장비 ID 는 rpi-<Pi 시리얼> 자동.
+# 측정 기록은 승인 뒤부터 보내고, 그 전 기록은 장비에 최대 7일 쌓아 두었다가 이어서 보냅니다.
 iot:
   enabled: true
   server_url: wss://iot.ionteclab.com/ws/device
-
-# pig_manager_server 측정 데이터 업로드 (1분 평균 + 현재 상태) — 모바일 앱에서 보기.
-# 서버에서 장비를 등록하고(node scripts/methanics-device.js add <device_id> <farmid>) 받은 키를 넣습니다.
-# 장비 ID 는 맨 위 device_id 를 씁니다.
-pig_server:
-  enabled: false
-  url: ""                # 서버 담당에게 확인 (swagger 기준 https://api.ionteclab.com) — 경로 /methanics/upload 는 앱이 붙임
-  device_key: ""         # 등록 때 한 번만 보여 주는 키
-  interval_s: 60
+  upload: true           # 1분 평균 측정 기록 업로드 (시뮬레이션 중에는 보내지 않음)

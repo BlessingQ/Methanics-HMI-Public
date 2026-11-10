@@ -47,10 +47,10 @@ if [[ -f "$CONF" ]]; then
 ' "$key" "$port" "$note"
   done
   grep -qE '^simulate:[[:space:]]*true' "$CONF" && echo "  ⚠ simulate: true — 시뮬레이션 모드 (현장 장비에서는 끄세요)"
-  # 서버 연결 설정 (키 값은 출력하지 않는다)
+  # 관제 서버 설정
   iot="$(sed -n '/^iot:/,/^[^ #]/p' "$CONF" | grep -E '^[[:space:]]+enabled:' | head -n1 | awk '{print $2}')"
-  pig="$(sed -n '/^pig_server:/,/^[^ #]/p' "$CONF" | grep -E '^[[:space:]]+enabled:' | head -n1 | awk '{print $2}')"
-  echo "  관제 서버(iot) : ${iot:-true(기본)}   ·   데이터 업로드(pig_server) : ${pig:-false(기본)}"
+  upl="$(sed -n '/^iot:/,/^[^ #]/p' "$CONF" | grep -E '^[[:space:]]+upload:' | head -n1 | awk '{print $2}')"
+  echo "  관제 서버(iot.enabled) : ${iot:-true(기본)}   ·   측정 기록 업로드(iot.upload) : ${upl:-true(기본)}"
 fi
 ls -l /dev/mtx-* 2>/dev/null
 echo "  고유 경로: $(ls /dev/serial/by-id 2>/dev/null | tr '

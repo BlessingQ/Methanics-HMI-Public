@@ -116,7 +116,7 @@ else
   log "설정 파일 유지: $CONF_DIR/config.yaml"
 fi
 chown "$APP_USER":"$APP_USER" "$CONF_DIR/config.yaml"
-chmod 0640 "$CONF_DIR/config.yaml"   # 장비 키가 들어간다 — 앱 사용자만 읽기
+chmod 0640 "$CONF_DIR/config.yaml"   # 관리자 PIN 이 들어간다 — 앱 사용자만 읽기
 
 # ── 5. udev ──────────────────────────────────────────────────────────────────
 if [[ ! -f /etc/udev/rules.d/99-methanics-serial.rules ]]; then
@@ -192,7 +192,7 @@ fi
 echo
 log "설치 완료."
 echo "  앱 경로      : $APP_ROOT/current  ->  $(readlink -f "$APP_ROOT/current" 2>/dev/null || echo '(릴리스 없음)')"
-echo "  설정         : $CONF_DIR/config.yaml   (device_id · admin_pin · iot · pig_server 를 현장에 맞게)"
+echo "  설정         : $CONF_DIR/config.yaml   (device_id · admin_pin · iot 를 현장에 맞게)"
 echo "  데이터       : $DATA_DIR   (업데이트 기록 · 업로드 대기열 — 업데이트 · 롤백해도 유지)"
 echo "  로그         : journalctl --user -u methanics-hmi -f   (사용자 $APP_USER 로)"
 echo "  상태         : methanics-status   ·   NVMe 점검: methanics-nvme-check"

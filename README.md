@@ -14,7 +14,7 @@
 | OS | Raspberry Pi OS **64-bit, Desktop** (Bookworm 이상). Lite 는 안 됨 — 화면이 필요 |
 | 화면 | 10.1" 1280×800 정전식 터치 (HDMI + USB 터치) |
 | 통신 | USB-RS485 3채널 (FUS-1T: Modbus 센서 · BPC-100 · IOC-100) + CH₄ 센서 USB-C 직결 |
-| 네트워크 | 설치 · 업데이트 · 서버 연결에 인터넷 (현장은 LTE 라우터). 측정 · 제어는 인터넷 없이 동작 |
+| 네트워크 | 설치 · 업데이트 · 관제 서버 연결에 인터넷 (현장은 LTE 라우터). 측정 · 제어는 인터넷 없이 동작 |
 
 ## 2. 설치 (한 줄)
 
@@ -57,23 +57,22 @@ sudo ./install.sh --user $USER
 
 ## 3. 설치 뒤 반드시 할 일
 
-1. **설정 파일** `/etc/methanics/config.yaml` — `device_id` · `admin_pin`(기본 1234 → 바꿈) · `simulate: false` · 서버 설정. 고친 뒤 `systemctl --user restart methanics-hmi`.
+1. **설정 파일** `/etc/methanics/config.yaml` — `device_id` · `admin_pin`(기본 1234 → 바꿈) · `simulate: false`. 고친 뒤 `systemctl --user restart methanics-hmi`.
 2. **시리얼 포트 고정** — `methanics-list-serial` 로 확인 → `/etc/udev/rules.d/99-methanics-serial.rules` 수정 → `ls -l /dev/mtx-*`.
-3. **관제 서버 승인** — 앱이 IONTEC IoT 관제 서버에 처음 연결하면 대시보드에 「승인 대기」(장치 종류 「메타닉스」)로 나타납니다. 관리자가 승인하면 원격 진단 · 원격 업데이트를 쓸 수 있습니다.
+3. **관제 서버 승인** — 앱이 IONTEC IoT 관제 서버에 처음 연결하면 대시보드에 「승인 대기」(장치 종류 「메타닉스」)로 나타납니다. 관리자가 승인하면 원격 진단 · 원격 업데이트를 쓸 수 있고, **1분 평균 측정 기록**이 대시보드 「측정 기록」 표에 쌓이기 시작합니다.
 
 자세한 순서와 확인 체크리스트: [초기 설정 안내서](docs/1_초기설정_M2_NVMe.md) 8 · 9장.
 
 ## 4. 설정 파일 `/etc/methanics/config.yaml`
 
-`config/config.example.yaml` 이 처음에 복사됩니다. 업데이트를 해도 이 파일은 덮어쓰지 않습니다. 장비 키가 들어가므로 앱 사용자만 읽을 수 있습니다(0640).
+`config/config.example.yaml` 이 처음에 복사됩니다. 업데이트를 해도 이 파일은 덮어쓰지 않습니다. 관리자 PIN 이 들어가므로 앱 사용자만 읽을 수 있습니다(0640).
 
 | 묶음 | 키 | 내용 |
 |---|---|---|
 | 장비 | `device_id` · `site_id` · `timezone` · `admin_pin` · `simulate` | 장비 번호 · 농장 · 시간대 · 관리자 PIN · 시뮬레이션(현장은 false) |
 | 포트 | `ports.modbus` · `ioc` · `bpc` · `ch4` | 기본 `/dev/mtx-*`. `/dev/serial/by-id/...` 고유 경로를 직접 적어도 됨 |
 | 업데이트 | `update.repo` · `channel` · `auto` · `check_interval_h` | 기본 이 저장소 · stable · **수동** · 6시간 |
-| 관제 서버 | `iot.enabled` · `iot.server_url` | 기본 켬 · `wss://iot.ionteclab.com/ws/device` |
-| 데이터 업로드 | `pig_server.enabled` · `url` · `device_key` · `interval_s` | 기본 끔. 서버에서 장비 등록 뒤 받은 키를 넣고 켬 |
+| 관제 서버 | `iot.enabled` · `iot.server_url` · `iot.upload` | 기본 켬 · `wss://iot.ionteclab.com/ws/device` · 1분 평균 측정 기록 업로드 켬 |
 
 측정 · 교정 파라미터(명세 15장)는 예시 파일의 주석을 보세요.
 
@@ -81,7 +80,7 @@ sudo ./install.sh --user $USER
 
 | 명령 | 설명 |
 |---|---|
-| `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 서버 설정 · 저장 장치 요약 |
+| `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 관제 서버 설정 · 저장 장치 요약 |
 | `methanics-nvme-check` | NVMe 부팅 · 부팅 순서 · PCIe 속도 점검 |
 | `methanics-list-serial` | USB 시리얼 컨버터 식별 정보 (udev 규칙 작성용) |
 | `journalctl --user -u methanics-hmi -f` | 앱 로그 실시간 보기 |
@@ -135,7 +134,7 @@ Release 태그는 `vX.Y.Z` (prerelease 는 `vX.Y.Z-beta.N`, `update.channel: bet
 | `/dev/mtx-*` 가 없음 | 3장 udev 규칙. `methanics-list-serial` 로 값 재확인 |
 | 터치 · 전체화면이 안 됨 | `sudo raspi-config` → Advanced → Wayland → X11 로 바꿔 재부팅 |
 | 관제 서버 「재시도 대기」 | 인터넷, `iot.server_url`. 「토큰 불일치 (401)」 이면 대시보드 「등록 초기화」 |
-| 데이터 업로드 「장비 키 불일치」 | `pig_server.device_key` 와 서버 등록 확인 |
+| 측정 기록 업로드 「승인 뒤 시작」 | 대시보드에서 장비 승인. 「서버에 운전 기록 API 없음 (404)」 이면 서버 v0.8.0 이상 필요 |
 
 ## 9. 저장소 구성
 
