@@ -4,7 +4,7 @@
 # 없는 키는 기본값을 씁니다. 범위 밖 값은 범위 안으로 맞추고 설정 화면에 표시합니다.
 
 device_id: MTX-0001
-language: ko              # 화면 처음 언어 ko · ru · en — 상단 🌐 언어 버튼으로 바꾸면 그 선택을 기억
+language: ko              # 화면 처음 언어 ko · ru · en — [정보] → 시스템 → 화면 언어로 바꾸면 그 선택을 기억
 site_id: ""
 timezone: Asia/Bishkek
 
