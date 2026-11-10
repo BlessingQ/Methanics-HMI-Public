@@ -1,4 +1,4 @@
-# 메타닉스 설정 예시 — /etc/methanics/config.yaml 로 복사해 고칩니다 (명세 15장).
+# Methanics 설정 예시 — /etc/methanics/config.yaml 로 복사해 고칩니다 (명세 15장).
 # 설치 스크립트(Methanics-HMI-Public install.sh)가 처음 한 번 복사합니다. 업데이트해도 덮어쓰지 않습니다.
 # 관리자 PIN 이 들어가므로 권한은 앱 사용자만 읽기(0640)입니다.
 # 없는 키는 기본값을 씁니다. 범위 밖 값은 범위 안으로 맞추고 설정 화면에 표시합니다.

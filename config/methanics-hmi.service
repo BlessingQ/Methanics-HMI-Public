@@ -1,5 +1,5 @@
 # ~/.config/systemd/user/methanics-hmi.service
-# 부팅(자동 로그인) 후 메타닉스 HMI 앱을 전체화면으로 시작하고, 종료되면 5초 뒤 다시 시작한다.
+# 부팅(자동 로그인) 후 Methanics HMI 앱을 전체화면으로 시작하고, 종료되면 5초 뒤 다시 시작한다.
 [Unit]
 Description=Methanics CH4 Measuring Feeder HMI
 After=default.target

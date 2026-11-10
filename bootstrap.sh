@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 메타닉스 HMI 원클릭 설치 부트스트랩 (Raspberry Pi 5 / Raspberry Pi OS 64-bit Desktop)
+# Methanics HMI 원클릭 설치 부트스트랩 (Raspberry Pi 5 / Raspberry Pi OS 64-bit Desktop)
 #
 #   curl -fsSL https://raw.githubusercontent.com/BlessingQ/Methanics-HMI-Public/main/bootstrap.sh | bash
 #

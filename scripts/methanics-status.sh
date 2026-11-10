@@ -2,7 +2,7 @@
 # 설치·실행 상태 요약
 set -uo pipefail
 APP_ROOT="${MTX_APP_ROOT:-/opt/methanics}"
-echo "=== 메타닉스 HMI 상태 ==="
+echo "=== Methanics HMI 상태 ==="
 echo "기기        : $(tr -d '\0' < /proc/device-tree/model 2>/dev/null || uname -m)"
 echo "현재 버전   : $(readlink -f "$APP_ROOT/current" 2>/dev/null | xargs -r basename || echo '(없음)')"
 echo "이전 버전   : $(cat "$APP_ROOT/previous" 2>/dev/null || echo '(없음)')"

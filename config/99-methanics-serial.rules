@@ -1,4 +1,4 @@
-# 메타닉스 시리얼 고정 이름 — 앱 config.yaml 의 ports 기본값과 같다. **선택 사항**:
+# Methanics 시리얼 고정 이름 — 앱 config.yaml 의 ports 기본값과 같다. **선택 사항**:
 # 보통은 앱 설정 → 「통신 포트」 [지정] 으로 USB 변환기를 칩 시리얼로 기억시키면 된다 (/var/lib/methanics/ports.json).
 #   /dev/mtx-modbus  FUS-1T #1 · GMP252 · EE650 · 센서노드 (9600 8N1)
 #   /dev/mtx-iontec  FUS-1T #2 · IOC-100 + BPC-100 공용 (9600 8N1, 장치유형으로 구분)

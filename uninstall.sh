@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 메타닉스 HMI 제거. 설정(/etc/methanics)과 데이터(/var/lib/methanics)는 --purge 를 줄 때만 지운다.
+# Methanics HMI 제거. 설정(/etc/methanics)과 데이터(/var/lib/methanics)는 --purge 를 줄 때만 지운다.
 # config.txt 의 usb_max_current_enable 과 ModemManager 제거는 되돌리지 않는다.
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "sudo 로 실행하세요" >&2; exit 1; }

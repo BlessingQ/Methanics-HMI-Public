@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 메타닉스 HMI 설치 스크립트 — Raspberry Pi 5 / Raspberry Pi OS (64-bit, Desktop, Bookworm 이상), M.2 NVMe 부팅 권장
+# Methanics HMI 설치 스크립트 — Raspberry Pi 5 / Raspberry Pi OS (64-bit, Desktop, Bookworm 이상), M.2 NVMe 부팅 권장
 #
 # 하는 일:
 #   1. 필수 패키지 설치, 앱 사용자를 dialout · gpio 그룹에 추가, ModemManager 제거 (CH₄ 센서 USB 포트를 건드리지 않게)
@@ -47,9 +47,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-log()  { printf '\033[1;36m[메타닉스]\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m[메타닉스] 경고:\033[0m %s\n' "$*" >&2; }
-die()  { printf '\033[1;31m[메타닉스] 오류:\033[0m %s\n' "$*" >&2; exit 1; }
+log()  { printf '\033[1;36m[Methanics]\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m[Methanics] 경고:\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[1;31m[Methanics] 오류:\033[0m %s\n' "$*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "sudo 로 실행하세요:  sudo ./install.sh"
 [[ -n "$APP_USER" && "$APP_USER" != "root" ]] || die "앱을 실행할 데스크톱 사용자를 --user 로 지정하세요 (예: --user pi)"
@@ -142,21 +142,21 @@ BOOTCFG=/boot/firmware/config.txt
 if [[ -f "$BOOTCFG" ]] && ! grep -qE '^usb_max_current_enable=1' "$BOOTCFG"; then
   log "config.txt: usb_max_current_enable=1 추가 (USB 포트 합계 1.6 A — CH₄ 센서를 USB 5V 로 쓰기 때문, 재부팅 후 적용)"
   cp -a "$BOOTCFG" "$BOOTCFG.bak-methanics"
-  printf '\n[all]\n# 메타닉스: CH4 센서(Axetris)를 USB 5V 로 쓴다 — 27 W 공식 어댑터가 아니어도 USB 전류 제한을 푼다\nusb_max_current_enable=1\n' >> "$BOOTCFG"
+  printf '\n[all]\n# Methanics: CH4 센서(Axetris)를 USB 5V 로 쓴다 — 27 W 공식 어댑터가 아니어도 USB 전류 제한을 푼다\nusb_max_current_enable=1\n' >> "$BOOTCFG"
 fi
 # RTC: Pi 5 보드 내장 RTC + 공식 충전식 배터리(ML-2020). 기본은 충전하지 않으므로 켠다 — 안 켜면 몇 달 뒤 방전돼 정전 때 시계가 초기화된다.
 # 충전식이 아닌 코인 전지(CR2032 등)를 달았으면 --no-rtc-charge (충전하면 위험).
 if [[ $RTC_CHARGE -eq 1 && -f "$BOOTCFG" ]] && grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null && ! grep -qE '^dtparam=rtc_bbat_vchg=' "$BOOTCFG"; then
   log "config.txt: RTC 배터리 충전 켬 (dtparam=rtc_bbat_vchg=3000000, 공식 충전식 배터리 전제 · 재부팅 후 적용)"
   [[ -f "$BOOTCFG.bak-methanics" ]] || cp -a "$BOOTCFG" "$BOOTCFG.bak-methanics"
-  printf '\n[all]\n# 메타닉스: Pi 5 RTC 공식 충전식 배터리 충전 (충전식이 아니면 이 줄을 지울 것)\ndtparam=rtc_bbat_vchg=3000000\n' >> "$BOOTCFG"
+  printf '\n[all]\n# Methanics: Pi 5 RTC 공식 충전식 배터리 충전 (충전식이 아니면 이 줄을 지울 것)\ndtparam=rtc_bbat_vchg=3000000\n' >> "$BOOTCFG"
 fi
 # 시각: 인터넷이 있으면 NTP(systemd-timesyncd)로 맞추고 RTC 에도 기록된다. 없으면 부팅 때 RTC 에서 읽는다.
 timedatectl set-ntp true >/dev/null 2>&1 || warn "NTP 켜기 실패 (timedatectl)"
 # 앱 설정 → 「시간 · RTC」 에서 앱이 직접 timedatectl 로 시각을 맞출 수 있게 — 스크립트 없이 polkit 규칙 파일 하나 (이 사용자 · 이 두 동작만)
 install -d -m 0755 /etc/polkit-1/rules.d
 cat > /etc/polkit-1/rules.d/50-methanics-time.rules <<RULES
-// 메타닉스 HMI: 앱 사용자($APP_USER)가 비밀번호 없이 시각 · NTP 를 바꿀 수 있게 (앱 설정 → 시간 · RTC). install.sh 가 만듦.
+// Methanics HMI: 앱 사용자($APP_USER)가 비밀번호 없이 시각 · NTP 를 바꿀 수 있게 (앱 설정 → 시간 · RTC). install.sh 가 만듦.
 polkit.addRule(function(action, subject) {
   if ((action.id == "org.freedesktop.timedate1.set-time" || action.id == "org.freedesktop.timedate1.set-ntp") &&
       subject.user == "$APP_USER") {
