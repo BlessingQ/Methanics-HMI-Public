@@ -8,6 +8,7 @@
 #   4. /etc/methanics/config.yaml 설정 파일 배치 (이미 있으면 유지)
 #   5. 시리얼 udev 규칙 템플릿 (/dev/mtx-* 고정 이름)
 #   6. /boot/firmware/config.txt: usb_max_current_enable=1 (CH₄ 센서 USB 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
+#      + 시각 권한 규칙(polkit) — 앱 설정 「시간 · RTC」 에서 시각을 맞출 수 있게
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
 #   9. 멈춤 감지 · 재시작은 앱 안 감시(watchdog)가 한다 — 별도 타이머 없음 (예전 methanics-healthcheck 가 있으면 지운다)
@@ -147,6 +148,18 @@ if [[ $RTC_CHARGE -eq 1 && -f "$BOOTCFG" ]] && grep -q "Raspberry Pi 5" /proc/de
 fi
 # 시각: 인터넷이 있으면 NTP(systemd-timesyncd)로 맞추고 RTC 에도 기록된다. 없으면 부팅 때 RTC 에서 읽는다.
 timedatectl set-ntp true >/dev/null 2>&1 || warn "NTP 켜기 실패 (timedatectl)"
+# 앱 설정 → 「시간 · RTC」 에서 앱이 직접 timedatectl 로 시각을 맞출 수 있게 — 스크립트 없이 polkit 규칙 파일 하나 (이 사용자 · 이 두 동작만)
+install -d -m 0755 /etc/polkit-1/rules.d
+cat > /etc/polkit-1/rules.d/50-methanics-time.rules <<RULES
+// 메타닉스 HMI: 앱 사용자($APP_USER)가 비밀번호 없이 시각 · NTP 를 바꿀 수 있게 (앱 설정 → 시간 · RTC). install.sh 가 만듦.
+polkit.addRule(function(action, subject) {
+  if ((action.id == "org.freedesktop.timedate1.set-time" || action.id == "org.freedesktop.timedate1.set-ntp") &&
+      subject.user == "$APP_USER") {
+    return polkit.Result.YES;
+  }
+});
+RULES
+chmod 0644 /etc/polkit-1/rules.d/50-methanics-time.rules
 
 # ── 7. 키오스크 ──────────────────────────────────────────────────────────────
 if [[ $KIOSK -eq 1 ]] && command -v raspi-config >/dev/null; then

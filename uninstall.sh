@@ -17,7 +17,7 @@ systemctl disable --now methanics-guard.service 2>/dev/null || true
 rm -f /etc/systemd/system/methanics-guard.service /usr/local/sbin/methanics-guard
 for s in status fetch-release apply-update rollback list-serial nvme-check; do rm -f "/usr/local/bin/methanics-$s"; done
 rm -rf /opt/methanics
-rm -f /etc/udev/rules.d/99-methanics-serial.rules
+rm -f /etc/udev/rules.d/99-methanics-serial.rules /etc/polkit-1/rules.d/50-methanics-time.rules
 udevadm control --reload-rules || true
 
 if [[ $PURGE -eq 1 ]]; then
