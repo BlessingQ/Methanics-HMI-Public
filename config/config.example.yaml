@@ -97,6 +97,6 @@ iot:
 # 장비 ID 는 맨 위 device_id 를 씁니다.
 pig_server:
   enabled: false
-  url: ""                # 예: https://<서버 주소>   (경로 /methanics/upload 는 앱이 붙임)
+  url: ""                # 서버 담당에게 확인 (swagger 기준 https://api.ionteclab.com) — 경로 /methanics/upload 는 앱이 붙임
   device_key: ""         # 등록 때 한 번만 보여 주는 키
   interval_s: 60
