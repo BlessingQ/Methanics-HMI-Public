@@ -13,7 +13,7 @@
 | 보드 | Raspberry Pi 5 (4 GB 이상) + M.2 HAT+ + NVMe SSD 256 GB (NVMe 부팅) |
 | OS | Raspberry Pi OS **64-bit, Desktop** (Bookworm 이상). Lite 는 안 됨 — 화면이 필요 |
 | 화면 | 10.1" 1280×800 정전식 터치 (HDMI + USB 터치) |
-| 통신 | USB-RS485 3채널 (FUS-1T: Modbus 센서 · BPC-100 · IOC-100) + CH₄ 센서 USB-C 직결 |
+| 통신 | USB-RS485 2채널 (FUS-1T: ① Modbus 센서 · ② IOC-100 + BPC-100 공용) + CH₄ 센서 USB-C 직결 |
 | 네트워크 | 설치 · 업데이트 · 관제 서버 연결에 인터넷 (현장은 LTE 라우터). 측정 · 제어는 인터넷 없이 동작 |
 
 ## 2. 설치 (한 줄)
@@ -33,11 +33,11 @@ sudo reboot
    - `/opt/methanics/` 구성 (`releases/`, `current` 링크, `bin/`, `downloads/`, `health/`), 데이터 `/var/lib/methanics`
    - GitHub **Releases 의 최신 패키지**를 받아 **sha256 검증** 후 설치
    - `/etc/methanics/config.yaml` 설정 파일 생성 (이미 있으면 유지)
-   - 시리얼 udev 규칙 템플릿 (`/dev/mtx-*` 고정 이름)
+   - 시리얼 udev 규칙 템플릿 (`/dev/mtx-*`, 선택 — 보통은 앱 「통신 포트」 화면으로 지정)
    - `config.txt` 에 `usb_max_current_enable=1` (CH₄ 센서 USB 5 V 전원)
    - 데스크톱 **자동 로그인**, **화면 꺼짐 방지**
    - **systemd 사용자 서비스** → 부팅 때 앱 자동 시작, 죽으면 5초 뒤 재시작
-   - 헬스체크 타이머 → 업데이트 뒤 기동 실패가 반복되면 **자동 롤백**, 앱이 멈추면 재시작
+   - 멈춤 감지는 **앱 안에 내장** (제어 틱 · 화면이 3분 멈추면 앱이 스스로 끝내고 서비스가 다시 켬). 업데이트 뒤 새 버전이 뜨지 않으면 **자동 롤백**
 3. 재부팅하면 자동 로그인 → 앱이 전체화면으로 시작합니다.
 
 수동 설치도 같습니다:
@@ -58,7 +58,7 @@ sudo ./install.sh --user $USER
 ## 3. 설치 뒤 반드시 할 일
 
 1. **설정 파일** `/etc/methanics/config.yaml` — `device_id` · `admin_pin`(기본 1234 → 바꿈) · `simulate: false`. 고친 뒤 `systemctl --user restart methanics-hmi`.
-2. **시리얼 포트 고정** — `methanics-list-serial` 로 확인 → `/etc/udev/rules.d/99-methanics-serial.rules` 수정 → `ls -l /dev/mtx-*`.
+2. **통신 포트 지정** — 앱 [설정] → **「통신 포트」** 에서 회선마다 [지정] → USB 변환기를 고르고 [지금 다시 시작]. 칩 시리얼 번호로 기억하므로(`/var/lib/methanics/ports.json`) USB 번호가 바뀌거나 다른 구멍에 꽂아도 그대로 열립니다. 시리얼이 없는 변환기는 꽂은 구멍 위치로 기억합니다.
 3. **관제 서버 승인** — 앱이 IONTEC IoT 관제 서버에 처음 연결하면 대시보드에 「승인 대기」(장치 종류 「메타닉스」)로 나타납니다. 관리자가 승인하면 원격 진단 · 원격 업데이트를 쓸 수 있고, **1분 평균 측정 기록**이 대시보드 「측정 기록」 표에 쌓이기 시작합니다.
 
 자세한 순서와 확인 체크리스트: [초기 설정 안내서](docs/1_초기설정_M2_NVMe.md) 8 · 9장.
@@ -70,7 +70,7 @@ sudo ./install.sh --user $USER
 | 묶음 | 키 | 내용 |
 |---|---|---|
 | 장비 | `device_id` · `site_id` · `timezone` · `admin_pin` · `simulate` | 장비 번호 · 농장 · 시간대 · 관리자 PIN · 시뮬레이션(현장은 false) |
-| 포트 | `ports.modbus` · `ioc` · `bpc` · `ch4` | 기본 `/dev/mtx-*`. `/dev/serial/by-id/...` 고유 경로를 직접 적어도 됨 |
+| 포트 | `ports.modbus` · `iontec` · `ch4` | 보통은 고치지 않음 — 화면 「통신 포트」에서 지정한 것이 먼저. 번호 경로(`/dev/ttyUSB0`)를 적으면 처음 기동 때 시리얼 경로로 바꿔 기억 |
 | 업데이트 | `update.repo` · `channel` · `auto` · `check_interval_h` | 기본 이 저장소 · stable · **수동** · 6시간 |
 | 관제 서버 | `iot.enabled` · `iot.server_url` · `iot.upload` | 기본 켬 · `wss://iot.ionteclab.com/ws/device` · 1분 평균 측정 기록 업로드 켬 |
 
@@ -82,7 +82,7 @@ sudo ./install.sh --user $USER
 |---|---|
 | `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 관제 서버 설정 · 저장 장치 요약 |
 | `methanics-nvme-check` | NVMe 부팅 · 부팅 순서 · PCIe 속도 점검 |
-| `methanics-list-serial` | USB 시리얼 컨버터 식별 정보 (udev 규칙 작성용) |
+| `methanics-list-serial` | USB 시리얼 변환기 식별 정보 (칩 시리얼 · USB 구멍 위치) |
 | `journalctl --user -u methanics-hmi -f` | 앱 로그 실시간 보기 |
 | `systemctl --user restart methanics-hmi` | 앱 재시작 |
 | `methanics-fetch-release --activate` | 최신 릴리스 받아 적용 (앱 화면 업데이트 버튼과 같음) |
@@ -129,10 +129,11 @@ Release 태그는 `vX.Y.Z` (prerelease 는 `vX.Y.Z-beta.N`, `update.channel: bet
 | 상단에 빨간 「SD 부팅」 | NVMe 대신 SD 카드로 켜짐 = NVMe 고장 · 빠짐 · 부팅 순서. `methanics-nvme-check`. SD 는 복사 당시 상태라 설정 · 버전 확인 (SD 로만 시험하는 장비는 `expect_nvme: false`) |
 | 부팅 뒤 바탕화면만 보임 | `methanics-status` → `current` 링크, `journalctl --user -u methanics-hmi -n 50` |
 | 서비스가 **masked** / 유닛 파일 0바이트 | 전원 급차단 흔적. `sudo methanics-guard` (재부팅 때 자동) |
-| 앱이 멈췄다가 저절로 재시작 | 정상 동작 — 1 Hz 제어 틱이 5분 넘게 멈추면 헬스체크가 재시작 (`/opt/methanics/health/hang_restarts.log`) |
+| 앱이 멈췄다가 저절로 재시작 | 정상 동작 — 앱 안 감시가 제어 틱 · 화면이 3분 멈춘 것을 보고 앱을 끝냄 → 서비스가 다시 켬 (`/opt/methanics/health/hang_restarts.log`) |
 | 업데이트 뒤 이전 버전으로 돌아감 | 새 버전이 정상 기동하지 않아 자동 롤백 (`/opt/methanics/health/rollback.log`). 로그 확인 후 다시 시도 |
 | 포트 열기 실패 (Permission denied) | `groups` 에 dialout → 재부팅 |
-| `/dev/mtx-*` 가 없음 | 3장 udev 규칙. `methanics-list-serial` 로 값 재확인 |
+| 「통신 포트」 빨간 점 · 「없음」 | 그 변환기가 안 꽂혔거나 바뀜 → [지정] 으로 다시 고름. `methanics-list-serial` 로 시리얼 확인 |
+| BPC-100 만 통신 오류 | IOC-100 과 같은 회선(9600)을 쓰려면 BPC-100 이 공용 회선 펌웨어여야 함 (현 v1.8 은 115200 · J13 전용) |
 | 터치 · 전체화면이 안 됨 | `sudo raspi-config` → Advanced → Wayland → X11 로 바꿔 재부팅 |
 | 관제 서버 「재시도 대기」 | 인터넷, `iot.server_url`. 「토큰 불일치 (401)」 이면 대시보드 「등록 초기화」 |
 | 측정 기록 업로드 「승인 뒤 시작」 | 대시보드에서 장비 승인. 「서버에 운전 기록 API 없음 (404)」 이면 서버 v0.8.0 이상 필요 |
@@ -148,17 +149,16 @@ scripts/
   methanics-fetch-release.sh   Releases 다운로드 · sha256 검증 · 설치
   methanics-apply-update.sh    current 링크 교체 · 재시작 · 헬스 대기 · 실패 시 롤백
   methanics-rollback.sh        직전 버전 복귀
-  methanics-healthcheck.sh     2분 타이머 — 기동 실패 반복 시 롤백, 하트비트 5분 정지 시 재시작
   methanics-run.sh             디스플레이 준비 대기 후 앱 실행 (systemd ExecStart)
   methanics-guard.sh           부팅 때 자동 시작 유닛 점검 · 복구 (root)
+  (멈춤 감지 · 재시작은 앱 안 감시 — 별도 스크립트 없음)
   methanics-status.sh          상태 요약
   methanics-nvme-check.sh      NVMe 부팅 점검
   methanics-list-serial.sh     USB 시리얼 식별 정보
 config/
   methanics-hmi.service          systemd 사용자 서비스
-  methanics-healthcheck.service / .timer
   methanics-guard.service        root 보호 서비스
-  99-methanics-serial.rules      udev 템플릿
+  99-methanics-serial.rules      udev 템플릿 (선택)
   config.example.yaml            설정 초기값
 ```
 

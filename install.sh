@@ -10,7 +10,7 @@
 #   6. /boot/firmware/config.txt: usb_max_current_enable=1 (CH₄ 센서 USB 전원 — 재부팅 후 적용)
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
-#   9. 헬스체크 타이머 -> 업데이트 뒤 기동 실패 반복 시 자동 롤백, 하트비트 5분 정지 시 재시작
+#   9. 멈춤 감지 · 재시작은 앱 안 감시(watchdog)가 한다 — 별도 타이머 없음 (예전 methanics-healthcheck 가 있으면 지운다)
 #  10. 자동 시작 보호 (root methanics-guard.service) -> 전원 급차단으로 유닛 파일이 비어도 부팅 때 복구
 #
 # 사용법:
@@ -86,7 +86,7 @@ install -d -o "$APP_USER" -g "$APP_USER" "$APP_ROOT" "$APP_ROOT/releases" "$APP_
 install -d -o "$APP_USER" -g "$APP_USER" -m 0750 "$DATA_DIR"
 install -d "$CONF_DIR"
 
-for s in fetch-release apply-update rollback healthcheck run list-serial status nvme-check; do
+for s in fetch-release apply-update rollback run list-serial status nvme-check; do
   install -m 0755 -o "$APP_USER" -g "$APP_USER" "$SRC_DIR/scripts/methanics-$s.sh" "$APP_ROOT/bin/methanics-$s"
 done
 install -m 0755 -o root -g root "$SRC_DIR/scripts/methanics-guard.sh" "$APP_ROOT/bin/methanics-guard"
@@ -143,12 +143,18 @@ if [[ $KIOSK -eq 1 ]] && command -v raspi-config >/dev/null; then
   raspi-config nonint do_blanking 1 || warn "화면 꺼짐 방지 설정 실패 (raspi-config)"
 fi
 
-# ── 8 · 9. systemd 사용자 서비스 (부팅 시 자동 시작) + 헬스체크 ───────────────
-log "systemd 사용자 서비스 등록: methanics-hmi.service · methanics-healthcheck.timer"
+# ── 8. systemd 사용자 서비스 (부팅 시 자동 시작 · 꺼지면 다시 켬) ─────────────
+log "systemd 사용자 서비스 등록: methanics-hmi.service (멈춤 감지는 앱 안 감시가 함)"
 USER_UNIT_DIR="$APP_HOME/.config/systemd/user"
 install -d -o "$APP_USER" -g "$APP_USER" "$APP_HOME/.config" "$APP_HOME/.config/systemd" "$USER_UNIT_DIR"
 install -d -o root -g root "$APP_ROOT/units"   # 원본 보관 — methanics-guard 가 부팅마다 비교해 복구
-for u in methanics-hmi.service methanics-healthcheck.service methanics-healthcheck.timer; do
+# 예전 설치(2026-11-10 전)의 헬스체크 타이머를 지운다 — 앱 v0.1.2~ 는 앱 안 감시를 쓴다
+if [[ -d "/run/user/$APP_UID" ]]; then
+  sudo -u "$APP_USER" XDG_RUNTIME_DIR="/run/user/$APP_UID" systemctl --user disable --now methanics-healthcheck.timer >/dev/null 2>&1 || true
+fi
+rm -f "$USER_UNIT_DIR/methanics-healthcheck.service" "$USER_UNIT_DIR/methanics-healthcheck.timer" "$USER_UNIT_DIR/timers.target.wants/methanics-healthcheck.timer" \
+      "$APP_ROOT/units/methanics-healthcheck.service" "$APP_ROOT/units/methanics-healthcheck.timer" "$APP_ROOT/bin/methanics-healthcheck"
+for u in methanics-hmi.service; do
   [[ -s "$SRC_DIR/config/$u" ]] || die "유닛 파일이 비어 있습니다: $SRC_DIR/config/$u (git pull 로 다시 받으세요)"
   install -m 0644 -o root -g root "$SRC_DIR/config/$u" "$APP_ROOT/units/$u"
   rm -f "$USER_UNIT_DIR/$u"
@@ -161,18 +167,16 @@ run_user_systemctl() {
 }
 if [[ -d "/run/user/$APP_UID" ]]; then
   run_user_systemctl daemon-reload
-  run_user_systemctl unmask methanics-hmi.service methanics-healthcheck.timer 2>/dev/null || true
-  run_user_systemctl enable methanics-hmi.service methanics-healthcheck.timer
+  run_user_systemctl unmask methanics-hmi.service 2>/dev/null || true
+  run_user_systemctl enable methanics-hmi.service
   if [[ -e "$APP_ROOT/current/methanics_hmi" ]]; then
     run_user_systemctl restart methanics-hmi.service || warn "서비스 시작 실패 — 'methanics-status' 로 확인"
-    run_user_systemctl start methanics-healthcheck.timer || true
   fi
 else
   warn "사용자 세션이 아직 없어 서비스 활성화를 건너뜁니다. 재부팅 후 자동 로그인되면 활성화됩니다."
-  install -d -o "$APP_USER" -g "$APP_USER" "$USER_UNIT_DIR/default.target.wants" "$USER_UNIT_DIR/timers.target.wants"
+  install -d -o "$APP_USER" -g "$APP_USER" "$USER_UNIT_DIR/default.target.wants"
   ln -sfn "$USER_UNIT_DIR/methanics-hmi.service" "$USER_UNIT_DIR/default.target.wants/methanics-hmi.service"
-  ln -sfn "$USER_UNIT_DIR/methanics-healthcheck.timer" "$USER_UNIT_DIR/timers.target.wants/methanics-healthcheck.timer"
-  chown -h "$APP_USER":"$APP_USER" "$USER_UNIT_DIR/default.target.wants/methanics-hmi.service" "$USER_UNIT_DIR/timers.target.wants/methanics-healthcheck.timer"
+  chown -h "$APP_USER":"$APP_USER" "$USER_UNIT_DIR/default.target.wants/methanics-hmi.service"
 fi
 
 # ── 10. 자동 시작 보호 (root) ───────────────────────────────────────────────
@@ -196,7 +200,7 @@ echo "  설정         : $CONF_DIR/config.yaml   (device_id · admin_pin · iot 
 echo "  데이터       : $DATA_DIR   (업데이트 기록 · 업로드 대기열 — 업데이트 · 롤백해도 유지)"
 echo "  로그         : journalctl --user -u methanics-hmi -f   (사용자 $APP_USER 로)"
 echo "  상태         : methanics-status   ·   NVMe 점검: methanics-nvme-check"
-echo "  시리얼 확인  : methanics-list-serial  → /etc/udev/rules.d/99-methanics-serial.rules 수정"
+echo "  통신 포트    : 앱 설정 → 통신 포트 [지정] (USB 칩 시리얼로 기억)  ·  확인: methanics-list-serial"
 echo "  업데이트     : methanics-fetch-release --activate   /  롤백: methanics-rollback"
 echo "  자동시작 복구: sudo methanics-guard   (부팅마다 자동 실행됨)"
 echo

@@ -19,9 +19,9 @@ log() { printf '[guard] %s\n' "$*"; logger -t methanics-guard -- "$*" 2>/dev/nul
 
 repaired=0
 install -d -o "$APP_USER" -g "$APP_USER" "$APP_HOME/.config" "$APP_HOME/.config/systemd" "$UNIT_DIR" \
-  "$UNIT_DIR/default.target.wants" "$UNIT_DIR/timers.target.wants"
+  "$UNIT_DIR/default.target.wants"
 
-for u in methanics-hmi.service methanics-healthcheck.service methanics-healthcheck.timer; do
+for u in methanics-hmi.service; do
   src="$SRC_DIR/$u"; dst="$UNIT_DIR/$u"
   [[ -s "$src" ]] || { log "원본이 비어 있음: $src (install.sh 재실행 필요)"; continue; }
   # -L: /dev/null 심볼릭 링크(mask) 도 복구 대상
@@ -42,7 +42,6 @@ want() {
   fi
 }
 want "$UNIT_DIR/default.target.wants/methanics-hmi.service"        "$UNIT_DIR/methanics-hmi.service"
-want "$UNIT_DIR/timers.target.wants/methanics-healthcheck.timer"   "$UNIT_DIR/methanics-healthcheck.timer"
 
 # 사용자 매니저가 로그인 없이도 뜨도록 (업데이트 적용·헬스체크가 SSH 세션과 무관하게 동작)
 if [[ ! -e "/var/lib/systemd/linger/$APP_USER" ]]; then
@@ -56,9 +55,9 @@ if [[ $repaired -eq 1 ]]; then
     sudo -u "$APP_USER" XDG_RUNTIME_DIR="/run/user/$APP_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$APP_UID/bus" \
       systemctl --user daemon-reload || true
     sudo -u "$APP_USER" XDG_RUNTIME_DIR="/run/user/$APP_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$APP_UID/bus" \
-      systemctl --user unmask methanics-hmi.service methanics-healthcheck.timer 2>/dev/null || true
+      systemctl --user unmask methanics-hmi.service 2>/dev/null || true
     sudo -u "$APP_USER" XDG_RUNTIME_DIR="/run/user/$APP_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$APP_UID/bus" \
-      systemctl --user enable --now methanics-hmi.service methanics-healthcheck.timer || true
+      systemctl --user enable --now methanics-hmi.service || true
   fi
   log "복구 완료"
 else

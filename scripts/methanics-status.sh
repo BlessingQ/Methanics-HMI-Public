@@ -25,21 +25,23 @@ echo "유닛 파일   : $UNIT — $unit_desc"
 if systemctl --user show methanics-hmi.service -p LoadState --value >/dev/null 2>&1; then
   echo "자동 시작   : $(systemctl --user is-enabled methanics-hmi.service 2>&1 | head -n 1) / 현재: $(systemctl --user is-active methanics-hmi.service 2>&1 | head -n 1)"
   systemctl --user status methanics-hmi.service --no-pager 2>/dev/null | head -n 5
-  systemctl --user list-timers methanics-healthcheck.timer --no-pager 2>/dev/null | head -n 3 || true
 else
   echo "(사용자 systemd 에 연결 불가 — 앱 사용자로 로그인한 터미널에서 실행하세요)"
 fi
 case "$unit_desc" in 정상*) ;; *) echo "→ 복구: sudo methanics-guard   (또는 cd ~/Methanics-HMI-Public && git pull && sudo ./install.sh)";; esac
 echo "보호 서비스 : $(systemctl is-enabled methanics-guard.service 2>&1 | head -n 1)"
-[[ -f "$APP_ROOT/health/hang_restarts.log" ]] && echo "하트비트 재시작: $(wc -l < "$APP_ROOT/health/hang_restarts.log")회 (마지막 $(tail -n 1 "$APP_ROOT/health/hang_restarts.log"))"
+[[ -f "$APP_ROOT/health/hang_restarts.log" ]] && echo "멈춤 재시작  : $(wc -l < "$APP_ROOT/health/hang_restarts.log")회 — 앱 안 감시 (마지막 $(tail -n 1 "$APP_ROOT/health/hang_restarts.log"))"
 echo
 echo "--- 회선 포트 (config.yaml → 지금 실제 장치) ---"
 CONF=/etc/methanics/config.yaml
 if [[ -f "$CONF" ]]; then
-  for key in modbus ioc bpc ch4; do
+  for key in modbus iontec ch4; do
     port="$(sed -n '/^ports:/,/^[^ #]/p' "$CONF" | grep -E "^[[:space:]]+$key:" | head -n1 | sed -E 's/^[^:]+:[[:space:]]*//; s/[[:space:]]+#.*$//; s/^"//; s/"$//')"
+    # 화면 「통신 포트」에서 기억한 장치(ports.json)가 설정 파일보다 먼저
+    mem="$(jq -r --arg k "$key" '.[$k].path // empty' /var/lib/methanics/ports.json 2>/dev/null)"
+    [[ -n "$mem" ]] && port="$mem (기억)"
     [[ -n "$port" ]] || port="/dev/mtx-$key (기본값)"
-    p="${port% (기본값)}"
+    p="${port% (기본값)}"; p="${p% (기억)}"
     if [[ ! -e "$p" ]]; then note="없음 ✗"
     elif [[ "$p" =~ ^/dev/tty(USB|ACM)[0-9]+$ ]]; then note="번호 경로 ⚠ 재부팅 때 바뀔 수 있음 → udev 이름(/dev/mtx-*) 이나 /dev/serial/by-id 경로로"
     else note="→ $(readlink -f "$p")"; fi

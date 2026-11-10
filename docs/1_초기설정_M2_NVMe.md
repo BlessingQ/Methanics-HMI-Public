@@ -12,7 +12,7 @@
 | 5 | OS 를 NVMe 에 쓰기 | 15분 |
 | 6 | NVMe 로 부팅 · 기본 설정 | 10분 |
 | 7 | 앱 설치 (한 줄) | 5분 |
-| 8 | 현장 설정 (config.yaml · 시리얼 포트) | 15분 |
+| 8 | 현장 설정 (config.yaml · 통신 포트 지정) | 15분 |
 | 9 | 확인 체크리스트 (SD 에 먼저 설치했다면 9-1 로 옮기기) | 5분 |
 
 ---
@@ -141,25 +141,27 @@ systemctl --user restart methanics-hmi      # 저장 뒤 앱 다시 시작
 | `expect_nvme` | `true` (기본) — SD 로 켜지면 상단에 「SD 부팅」 경고. M.2 오기 전 SD 로만 시험할 때는 `false` |
 | `iot.enabled` · `iot.upload` | `true` — 관제 서버 연결 · 1분 평균 측정 기록 업로드 (대시보드에서 승인 필요, 키 발급 없음) |
 
-### 8-2. 시리얼 포트 고정
+### 8-2. 통신 포트 지정 (USB 변환기 고르기)
 
-USB 컨버터 번호(`/dev/ttyUSB0~`)는 재부팅마다 바뀝니다. 고정 이름 `/dev/mtx-*` 를 만듭니다.
+USB 변환기 번호(`/dev/ttyUSB0~`)는 재부팅마다 바뀝니다. 앱이 변환기의 **칩 시리얼 번호**로 기억하게 합니다.
 
-```bash
-methanics-list-serial                         # 컨버터마다 serial · ID_PATH 확인 (하나씩 꽂으며 어느 것인지 확인)
-sudo nano /etc/udev/rules.d/99-methanics-serial.rules   # 자리표시자 채우고 # 지우기
-sudo udevadm control --reload-rules && sudo udevadm trigger
-ls -l /dev/mtx-*                              # mtx-modbus · mtx-bpc · mtx-ioc · mtx-ch4
-```
+1. 변환기 3개를 꽂습니다 — Modbus 용 FUS-1T, IOC-100 · BPC-100 공용 FUS-1T, CH₄ 센서 USB-C 케이블(RPi5 에 직결).
+2. 앱 [설정](관리자 PIN) → **「통신 포트」** → 회선마다 **[지정]** → 목록에서 그 변환기를 누릅니다.
+   - 목록에 「FT232R USB UART · 시리얼 A1062KUD · ttyUSB0」 처럼 나옵니다. 어느 것인지 모르면 하나씩 뽑았다 꽂으며 목록을 다시 엽니다.
+3. **[지금 다시 시작]** → 약 10초 뒤 앱이 다시 뜨고, [정보] → 장치 통신이 「정상」 이면 끝.
 
-| 이름 | 연결 |
+| 회선 | 연결 |
 |---|---|
-| `/dev/mtx-modbus` | FUS-1T #1 — GMP252 · EE650 · 센서노드 |
-| `/dev/mtx-bpc` | FUS-1T #2 — BPC-100 |
-| `/dev/mtx-ioc` | FUS-1T #3 — IOC-100 |
-| `/dev/mtx-ch4` | Axetris CH₄ 센서 USB-C 케이블 (RPi5 USB-A 에 직결, 허브 거치지 않음) |
+| Modbus 센서 | FUS-1T #1 — GMP252 · EE650 · 센서노드 |
+| IOC-100 · BPC-100 (공용) | FUS-1T #2 — 한 회선 9600 (장치유형으로 구분) |
+| CH₄ 센서 | Axetris USB-C 케이블 (RPi5 USB-A 에 직결, 허브 거치지 않음) |
 
-> CH₄ 센서(Axetris)는 연결된 채 Pi 를 켜거나 재시작하지 말라는 주의가 있습니다(OI 2.4). 설치 스크립트가 ModemManager 를 지워 다른 프로그램이 포트를 건드리지 않게 합니다.
+- 시리얼이 있는 변환기(FTDI 등)는 **다른 USB 구멍에 꽂아도** 그대로 열립니다. 시리얼이 없는 변환기(CH340 등)는 **꽂은 구멍 위치**로 기억하므로 구멍을 바꾸면 다시 [지정] 합니다 (화면에 「USB 구멍 위치」로 표시).
+- 기억은 `/var/lib/methanics/ports.json` 에 남고 업데이트 · 롤백해도 유지됩니다.
+- 터미널로 확인: `methanics-list-serial` (시리얼 · 위치), `methanics-status` 「회선 포트」(기억한 경로).
+- udev 고정 이름(`/dev/mtx-*`)을 쓰고 싶으면 `/etc/udev/rules.d/99-methanics-serial.rules` 템플릿을 채웁니다 (선택).
+
+> **BPC-100 펌웨어**: IOC-100 과 한 회선(9600)을 쓰려면 BPC-100 이 공용 회선 펌웨어여야 합니다. 현 v1.8 은 J13(XBee 소켓) 115200 전용이라 이 회선에서 응답하지 않습니다 — [정보] 에서 BPC-100 만 오류면 이 때문입니다.
 
 ## 9. 확인 체크리스트
 
@@ -167,8 +169,8 @@ ls -l /dev/mtx-*                              # mtx-modbus · mtx-bpc · mtx-ioc
 |---|---|---|
 | NVMe 부팅 | `methanics-nvme-check` | 「결과: 정상」 |
 | 앱 자동 시작 | 재부팅 | 1분 안에 전체화면 |
-| 서비스 · 헬스 | `methanics-status` | 자동 시작 enabled · 헬스 마커 시각이 1분 안 |
-| 포트 | `methanics-status` 「회선 포트」 | 4개 모두 `→ /dev/ttyUSB…` |
+| 서비스 · 헬스 | `methanics-status` | 자동 시작 enabled · 헬스 마커 시각이 1분 안 (멈춤 감지는 앱 안 감시) |
+| 통신 포트 | 앱 [설정] → 통신 포트 | 3개 모두 초록 · 「시리얼 …」 |
 | 장치 통신 | 앱 [정보] → 장치 통신 | 6개 「정상」 |
 | 관제 서버 | 앱 [정보] → 서버 연결 | 「연결됨 · 승인 대기」 → 대시보드 승인 → 「연결됨」 |
 | 측정 기록 업로드 | 앱 [정보] → 서버 연결 · 대시보드 「측정 기록」 | 「정상 · 마지막 hh:mm:ss」 · 표에 1분마다 1줄 |
@@ -200,7 +202,7 @@ M.2 가 오기 전에 SD 카드로 설치 · 시험했다면 처음부터 다시
 | 무지개 화면에서 멈춤 | 전원 부족 — 27 W 어댑터로 시험, 현장은 5 V 전원을 5.2 V 로 조정 |
 | 앱이 안 뜨고 바탕화면만 | `methanics-status`, `journalctl --user -u methanics-hmi -n 50` |
 | 포트 열기 실패 (Permission denied) | `groups` 에 dialout 이 있는지 → 재부팅 |
-| CH₄ 값이 안 들어옴 | `/dev/mtx-ch4` 가 있는지, `config.txt` 에 `usb_max_current_enable=1` 이 있는지(설치 스크립트가 넣음, 재부팅 필요) |
+| CH₄ 값이 안 들어옴 | [설정] → 통신 포트의 CH₄ 가 초록인지, `config.txt` 에 `usb_max_current_enable=1` 이 있는지(설치 스크립트가 넣음, 재부팅 필요) |
 | 관제 서버 「재시도 대기」 | 인터넷 연결, 서버 주소(`iot.server_url`). 「토큰 불일치 (401)」 이면 대시보드 「등록 초기화」 |
 
 ---
