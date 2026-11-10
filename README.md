@@ -29,7 +29,7 @@ sudo reboot
 
 1. `git` 설치 → 이 저장소를 `~/Methanics-HMI-Public` 에 클론
 2. `install.sh` 를 `sudo` 로 실행
-   - 필수 패키지 설치, 사용자를 `dialout` · `gpio` 그룹에 추가, **ModemManager 제거** (CH₄ 센서 USB 포트 보호)
+   - 필수 패키지 · **한글 글꼴**(`fonts-noto-cjk`) · 한국어 로캘 설치, 사용자를 `dialout` · `gpio` 그룹에 추가, **ModemManager 제거** (CH₄ 센서 USB 포트 보호)
    - `/opt/methanics/` 구성 (`releases/`, `current` 링크, `bin/`, `downloads/`, `health/`), 데이터 `/var/lib/methanics`
    - GitHub **Releases 의 최신 패키지**를 받아 **sha256 검증** 후 설치
    - `/etc/methanics/config.yaml` 설정 파일 생성 (이미 있으면 유지)
@@ -129,6 +129,7 @@ Release 태그는 `vX.Y.Z` (prerelease 는 `vX.Y.Z-beta.N`, `update.channel: bet
 | 증상 | 확인 |
 |---|---|
 | 상단에 빨간 「SD 부팅」 | NVMe 대신 SD 카드로 켜짐 = NVMe 고장 · 빠짐 · 부팅 순서. `methanics-nvme-check`. SD 는 복사 당시 상태라 설정 · 버전 확인 (SD 로만 시험하는 장비는 `expect_nvme: false`) |
+| 설치할 때 터미널 한글이 □ 로 깨짐 | 새 OS 에 한글 글꼴이 없어서 — `bootstrap.sh` 가 맨 먼저 글꼴(`fonts-noto-cjk`)을 깐다. 그래도 깨지면 터미널을 닫았다 열고 같은 명령을 한 번 더 (반복해도 안전) |
 | 부팅 뒤 바탕화면만 보임 | `methanics-status` → `current` 링크, `journalctl --user -u methanics-hmi -n 50` |
 | 서비스가 **masked** / 유닛 파일 0바이트 | 전원 급차단 흔적. `sudo methanics-guard` (재부팅 때 자동) |
 | 앱이 멈췄다가 저절로 재시작 | 정상 동작 — 앱 안 감시가 제어 틱 · 화면이 3분 멈춘 것을 보고 앱을 끝냄 → 서비스가 다시 켬 (`/opt/methanics/health/hang_restarts.log`) |
