@@ -13,6 +13,10 @@ admin_pin: "1234"
 # true 면 실제 포트 대신 시뮬레이터로 동작합니다. 현장 장비에서는 절대 켜지 않습니다.
 simulate: false
 
+# 현장 장비는 M.2 NVMe 로 부팅합니다. SD 카드로 켜지면(NVMe 고장 · 빠짐) 상단에 「SD 부팅」을 띄우고 관제 서버에 진단을 보냅니다.
+# NVMe 없이 SD 로만 시험하는 장비는 false.
+expect_nvme: true
+
 ports:
   modbus: /dev/mtx-modbus   # FUS-1T #1 · 9600 8N1 · GMP252 · EE650 · 센서노드
   ioc: /dev/mtx-ioc         # FUS-1T #3 · 9600 8N1

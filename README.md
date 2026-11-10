@@ -126,6 +126,7 @@ Release 태그는 `vX.Y.Z` (prerelease 는 `vX.Y.Z-beta.N`, `update.channel: bet
 
 | 증상 | 확인 |
 |---|---|
+| 상단에 빨간 「SD 부팅」 | NVMe 대신 SD 카드로 켜짐 = NVMe 고장 · 빠짐 · 부팅 순서. `methanics-nvme-check`. SD 는 복사 당시 상태라 설정 · 버전 확인 (SD 로만 시험하는 장비는 `expect_nvme: false`) |
 | 부팅 뒤 바탕화면만 보임 | `methanics-status` → `current` 링크, `journalctl --user -u methanics-hmi -n 50` |
 | 서비스가 **masked** / 유닛 파일 0바이트 | 전원 급차단 흔적. `sudo methanics-guard` (재부팅 때 자동) |
 | 앱이 멈췄다가 저절로 재시작 | 정상 동작 — 1 Hz 제어 틱이 5분 넘게 멈추면 헬스체크가 재시작 (`/opt/methanics/health/hang_restarts.log`) |

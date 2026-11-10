@@ -138,6 +138,7 @@ systemctl --user restart methanics-hmi      # 저장 뒤 앱 다시 시작
 | `site_id` · `timezone` | 설치 농장 · 시간대 |
 | `admin_pin` | 기본 `1234` → **반드시 바꿈** |
 | `simulate` | `false` 확인 (true 면 가짜 값) |
+| `expect_nvme` | `true` (기본) — SD 로 켜지면 상단에 「SD 부팅」 경고. M.2 오기 전 SD 로만 시험할 때는 `false` |
 | `iot.enabled` · `iot.upload` | `true` — 관제 서버 연결 · 1분 평균 측정 기록 업로드 (대시보드에서 승인 필요, 키 발급 없음) |
 
 ### 8-2. 시리얼 포트 고정
