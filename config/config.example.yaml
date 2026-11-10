@@ -43,6 +43,14 @@ gpio:
   head_line: 17             # BCM 번호 (헤더 11번 핀)
   head_active_high: false   # 머리가 있을 때 HIGH 면 true (포토커플러 출력은 보통 LOW)
 
+# 방문 사진 카메라 (Arducam B0448 UVC — 리눅스 기본 드라이버). 앱이 ffmpeg 로 한 장씩 받는다
+camera:
+  enabled: true
+  device: /dev/video0       # 카메라가 하나면 그대로. 바뀌면 /dev/v4l/by-id/usb-…-video-index0
+  width: 1920
+  height: 1080
+  thumb_width: 480          # 서버로 올리는 대표 사진 축소본 (약 30 KB)
+
 # 운전
 warmup_min: 30
 sleep_rewarm_min: 10

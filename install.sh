@@ -74,14 +74,15 @@ log "패키지 설치"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 # fonts-noto-cjk: 터미널 · 바탕화면의 한글 (앱 화면은 글꼴을 앱에 넣어 둠) — ARC-100 과 같음
-# gpiod: 앱이 머리 진입 포토센서(GPIO)를 gpiomon 으로 읽는다
-apt-get install -y -qq curl jq git ca-certificates libgtk-3-0 liblzma5 libstdc++6 libblkid1 smartmontools fonts-noto-cjk locales gpiod >/dev/null
+# gpiod: 앱이 머리 진입 포토센서(GPIO)를 gpiomon 으로 읽는다 · ffmpeg: 방문 사진(UVC 카메라) 한 장씩
+apt-get install -y -qq curl jq git ca-certificates libgtk-3-0 liblzma5 libstdc++6 libblkid1 smartmontools fonts-noto-cjk locales gpiod ffmpeg >/dev/null
 # 앱 실행 래퍼가 LANG=ko_KR.UTF-8 을 쓰므로 로캘을 만들어 둔다 (시스템 기본 언어는 바꾸지 않음)
 if ! locale -a 2>/dev/null | grep -qi '^ko_KR\.utf-\?8$'; then
   sed -i 's/^# *\(ko_KR\.UTF-8 UTF-8\)/\1/' /etc/locale.gen && locale-gen >/dev/null 2>&1 || warn "ko_KR.UTF-8 로캘 생성 실패"
 fi
 usermod -aG dialout "$APP_USER"
 getent group gpio >/dev/null && usermod -aG gpio "$APP_USER"   # 머리 진입 포토센서 (GPIO 입력)
+getent group video >/dev/null && usermod -aG video "$APP_USER" # 방문 사진 카메라 (/dev/video0)
 if [[ $KEEP_MM -eq 0 ]] && dpkg -s modemmanager >/dev/null 2>&1; then
   # ModemManager 는 새 USB 시리얼마다 AT 명령을 보낸다 — RS-485 버스에 엉뚱한 바이트가 나가 센서 응답이 깨질 수 있다.
   # LTE 는 외부 라우터(RUT241)가 맡으므로 Pi 에는 필요 없다.
