@@ -34,7 +34,7 @@ sudo reboot
    - GitHub **Releases 의 최신 패키지**를 받아 **sha256 검증** 후 설치
    - `/etc/methanics/config.yaml` 설정 파일 생성 (이미 있으면 유지)
    - 시리얼 udev 규칙 템플릿 (`/dev/mtx-*`, 선택 — 보통은 앱 「통신 포트」 화면으로 지정)
-   - `config.txt` 에 `usb_max_current_enable=1` (CH₄ 센서 USB 5 V 전원)
+   - `config.txt` 에 `usb_max_current_enable=1` (CH₄ 센서 USB 5 V 전원) · **RTC 배터리 충전** (공식 충전식 배터리 전제) · NTP 켬
    - 데스크톱 **자동 로그인**, **화면 꺼짐 방지**
    - **systemd 사용자 서비스** → 부팅 때 앱 자동 시작, 죽으면 5초 뒤 재시작
    - 멈춤 감지는 **앱 안에 내장** (제어 틱 · 화면이 3분 멈추면 앱이 스스로 끝내고 서비스가 다시 켬). 업데이트 뒤 새 버전이 뜨지 않으면 **자동 롤백**
@@ -54,6 +54,7 @@ sudo ./install.sh --user $USER
 | `--user pi` | 앱을 실행할 데스크톱 사용자 (기본: sudo 를 호출한 사용자) |
 | `--no-kiosk` | 자동 로그인 · 화면 꺼짐 설정을 건드리지 않음 |
 | `--keep-modemmanager` | ModemManager 를 지우지 않음 |
+| `--no-rtc-charge` | RTC 배터리 충전을 켜지 않음 — **충전식이 아닌 코인 전지(CR2032 등)를 단 경우 반드시** |
 
 ## 3. 설치 뒤 반드시 할 일
 
@@ -80,7 +81,7 @@ sudo ./install.sh --user $USER
 
 | 명령 | 설명 |
 |---|---|
-| `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 관제 서버 설정 · 저장 장치 요약 |
+| `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 관제 서버 설정 · 시각(RTC · NTP) · 저장 장치 요약 |
 | `methanics-nvme-check` | NVMe 부팅 · 부팅 순서 · PCIe 속도 점검 |
 | `methanics-list-serial` | USB 시리얼 변환기 식별 정보 (칩 시리얼 · USB 구멍 위치) |
 | `journalctl --user -u methanics-hmi -f` | 앱 로그 실시간 보기 |

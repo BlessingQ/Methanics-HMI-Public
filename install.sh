@@ -7,7 +7,7 @@
 #   3. GitHub Releases 에서 최신 앱 패키지 다운로드 + sha256 검증 + 설치 (--local <tar.gz> 로 대체 가능)
 #   4. /etc/methanics/config.yaml 설정 파일 배치 (이미 있으면 유지)
 #   5. 시리얼 udev 규칙 템플릿 (/dev/mtx-* 고정 이름)
-#   6. /boot/firmware/config.txt: usb_max_current_enable=1 (CH₄ 센서 USB 전원 — 재부팅 후 적용)
+#   6. /boot/firmware/config.txt: usb_max_current_enable=1 (CH₄ 센서 USB 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
 #   9. 멈춤 감지 · 재시작은 앱 안 감시(watchdog)가 한다 — 별도 타이머 없음 (예전 methanics-healthcheck 가 있으면 지운다)
@@ -19,6 +19,7 @@
 #   sudo ./install.sh --user pi           # 앱을 실행할 데스크톱 사용자 (기본: sudo 를 호출한 사용자)
 #   sudo ./install.sh --no-kiosk          # 자동 로그인 · 화면 설정을 건드리지 않음
 #   sudo ./install.sh --keep-modemmanager # ModemManager 를 지우지 않음
+#   sudo ./install.sh --no-rtc-charge     # RTC 배터리 충전을 켜지 않음 (충전식이 아닌 코인 전지를 단 경우 — 꼭 이 옵션)
 set -euo pipefail
 
 REPO="${MTX_REPO:-BlessingQ/Methanics-HMI-Public}"
@@ -31,6 +32,7 @@ LOCAL_PKG=""
 APP_USER="${SUDO_USER:-}"
 KIOSK=1
 KEEP_MM=0
+RTC_CHARGE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -38,7 +40,8 @@ while [[ $# -gt 0 ]]; do
     --user) APP_USER="$2"; shift 2 ;;
     --no-kiosk) KIOSK=0; shift ;;
     --keep-modemmanager) KEEP_MM=1; shift ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    --no-rtc-charge) RTC_CHARGE=0; shift ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) echo "알 수 없는 옵션: $1" >&2; exit 1 ;;
   esac
 done
@@ -135,6 +138,15 @@ if [[ -f "$BOOTCFG" ]] && ! grep -qE '^usb_max_current_enable=1' "$BOOTCFG"; the
   cp -a "$BOOTCFG" "$BOOTCFG.bak-methanics"
   printf '\n[all]\n# 메타닉스: CH4 센서(Axetris)를 USB 5V 로 쓴다 — 27 W 공식 어댑터가 아니어도 USB 전류 제한을 푼다\nusb_max_current_enable=1\n' >> "$BOOTCFG"
 fi
+# RTC: Pi 5 보드 내장 RTC + 공식 충전식 배터리(ML-2020). 기본은 충전하지 않으므로 켠다 — 안 켜면 몇 달 뒤 방전돼 정전 때 시계가 초기화된다.
+# 충전식이 아닌 코인 전지(CR2032 등)를 달았으면 --no-rtc-charge (충전하면 위험).
+if [[ $RTC_CHARGE -eq 1 && -f "$BOOTCFG" ]] && grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null && ! grep -qE '^dtparam=rtc_bbat_vchg=' "$BOOTCFG"; then
+  log "config.txt: RTC 배터리 충전 켬 (dtparam=rtc_bbat_vchg=3000000, 공식 충전식 배터리 전제 · 재부팅 후 적용)"
+  [[ -f "$BOOTCFG.bak-methanics" ]] || cp -a "$BOOTCFG" "$BOOTCFG.bak-methanics"
+  printf '\n[all]\n# 메타닉스: Pi 5 RTC 공식 충전식 배터리 충전 (충전식이 아니면 이 줄을 지울 것)\ndtparam=rtc_bbat_vchg=3000000\n' >> "$BOOTCFG"
+fi
+# 시각: 인터넷이 있으면 NTP(systemd-timesyncd)로 맞추고 RTC 에도 기록된다. 없으면 부팅 때 RTC 에서 읽는다.
+timedatectl set-ntp true >/dev/null 2>&1 || warn "NTP 켜기 실패 (timedatectl)"
 
 # ── 7. 키오스크 ──────────────────────────────────────────────────────────────
 if [[ $KIOSK -eq 1 ]] && command -v raspi-config >/dev/null; then

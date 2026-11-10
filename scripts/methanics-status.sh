@@ -58,6 +58,21 @@ ls -l /dev/mtx-* 2>/dev/null
 echo "  고유 경로: $(ls /dev/serial/by-id 2>/dev/null | tr '
 ' ' ')"
 echo
+echo "--- 시각 (RTC · NTP) ---"
+echo "  지금        : $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo "  NTP 동기화  : $(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo '?')  (NTP 서비스 $(timedatectl show -p NTP --value 2>/dev/null || echo '?'))"
+if [[ -r /sys/class/rtc/rtc0/time ]]; then
+  echo "  RTC (UTC)   : $(cat /sys/class/rtc/rtc0/date) $(cat /sys/class/rtc/rtc0/time)"
+else
+  echo "  RTC         : 없음"
+fi
+cv="$(cat /sys/class/rtc/rtc0/charging_voltage 2>/dev/null)"
+case "$cv" in
+  "") echo "  RTC 충전    : 확인 불가" ;;
+  0) echo "  RTC 충전    : 꺼짐 ⚠ 공식 충전식 배터리면 config.txt 에 dtparam=rtc_bbat_vchg=3000000 (install.sh 가 넣음) 후 재부팅" ;;
+  *) echo "  RTC 충전    : 켜짐 (${cv} µV)" ;;
+esac
+echo
 echo "--- 저장 장치 ---"
 "$APP_ROOT/bin/methanics-nvme-check" --short 2>/dev/null || echo "  (methanics-nvme-check 없음)"
 echo
