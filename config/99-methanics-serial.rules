@@ -1,0 +1,23 @@
+# 메타닉스 시리얼 고정 이름 — 앱 config.yaml 의 ports 기본값과 같다.
+#   /dev/mtx-modbus  FUS-1T #1 · GMP252 · EE650 · 센서노드 (9600 8N1)
+#   /dev/mtx-bpc     FUS-1T #2 · BPC-100 급이기 (현 펌웨어 115200)
+#   /dev/mtx-ioc     FUS-1T #3 · IOC-100 출력 제어 (9600)
+#   /dev/mtx-ch4     Axetris LGD Compact Ultra 정품 M8–USB-C 케이블 (RPi5 USB-A 직결, 허브 거치지 않음)
+#
+# ttyUSB 번호는 재부팅마다 바뀐다. 'methanics-list-serial' 로 실제 컨버터의 serial / ID_PATH 를 확인해
+# 아래 자리표시자(<...>)를 채우고 앞의 # 을 지운다. 쓰지 않는 블록은 그대로 둔다.
+# 적용: sudo udevadm control --reload-rules && sudo udevadm trigger && ls -l /dev/mtx-*
+#
+# A. 칩 고유 serial 이 있는 컨버터 (FTDI 등) — 권장. 꽂는 USB 구멍을 바꿔도 유지된다.
+#SUBSYSTEM=="tty", ATTRS{serial}=="<SERIAL_MODBUS>", SYMLINK+="mtx-modbus", MODE="0660", GROUP="dialout"
+#SUBSYSTEM=="tty", ATTRS{serial}=="<SERIAL_BPC>",    SYMLINK+="mtx-bpc",    MODE="0660", GROUP="dialout"
+#SUBSYSTEM=="tty", ATTRS{serial}=="<SERIAL_IOC>",    SYMLINK+="mtx-ioc",    MODE="0660", GROUP="dialout"
+#SUBSYSTEM=="tty", ATTRS{serial}=="<SERIAL_CH4>",    SYMLINK+="mtx-ch4",    MODE="0660", GROUP="dialout"
+#
+# B. serial 이 없는 컨버터 (CH340 등) — USB 물리 포트 위치로 고정. 꽂는 자리를 바꾸면 다시 확인.
+#SUBSYSTEM=="tty", ENV{ID_PATH}=="<PATH_MODBUS>", SYMLINK+="mtx-modbus", MODE="0660", GROUP="dialout"
+#SUBSYSTEM=="tty", ENV{ID_PATH}=="<PATH_BPC>",    SYMLINK+="mtx-bpc",    MODE="0660", GROUP="dialout"
+#SUBSYSTEM=="tty", ENV{ID_PATH}=="<PATH_IOC>",    SYMLINK+="mtx-ioc",    MODE="0660", GROUP="dialout"
+#SUBSYSTEM=="tty", ENV{ID_PATH}=="<PATH_CH4>",    SYMLINK+="mtx-ch4",    MODE="0660", GROUP="dialout"
+#
+# 규칙 대신 config.yaml ports 에 /dev/serial/by-id/... 고유 경로를 직접 적어도 된다 (methanics-list-serial 의 links=).

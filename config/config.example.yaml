@@ -1,0 +1,102 @@
+# 메타닉스 설정 예시 — /etc/methanics/config.yaml 로 복사해 고칩니다 (명세 15장).
+# 설치 스크립트(Methanics-HMI-Public install.sh)가 처음 한 번 복사합니다. 업데이트해도 덮어쓰지 않습니다.
+# 장비 키가 들어가므로 권한은 앱 사용자만 읽기(0640)입니다.
+# 없는 키는 기본값을 씁니다. 범위 밖 값은 범위 안으로 맞추고 설정 화면에 표시합니다.
+
+device_id: MTX-0001
+site_id: ""
+timezone: Asia/Bishkek
+
+# 수동 제어 · 설정 화면 잠금. 현장 설치 전에 바꿉니다.
+admin_pin: "1234"
+
+# true 면 실제 포트 대신 시뮬레이터로 동작합니다. 현장 장비에서는 절대 켜지 않습니다.
+simulate: false
+
+ports:
+  modbus: /dev/mtx-modbus   # FUS-1T #1 · 9600 8N1 · GMP252 · EE650 · 센서노드
+  ioc: /dev/mtx-ioc         # FUS-1T #3 · 9600 8N1
+  bpc: /dev/mtx-bpc         # FUS-1T #2 · 현 펌웨어 115200 8N1
+  ch4: /dev/mtx-ch4         # Axetris USB-C 케이블 · RPi5 직결
+  bpc_baud: 115200
+  ch4_baud: 9600
+
+addresses:
+  gmp252: 240
+  ee650: 65
+  sensor_node: 1
+  ioc_id: 1
+  ioc_gw: 1
+  bpc_id: 1
+  bpc_gw: 1
+
+# 운전
+warmup_min: 30
+sleep_rewarm_min: 10
+
+# 방문 판정 (6장)
+head_on_debounce_s: 0.5
+head_window_s: 10
+head_in_min_s: 2
+head_off_end_s: 30
+visit_max_s: 900
+good_min_s: 120
+bkg_pre_s: 120
+bkg_post_s: 120
+gas_lag_s: 0
+
+# 급이 (7장) — 현 펌웨어 100 g 단위 기준. 펌웨어 보완 후 8 · 25 · 35
+drops_per_visit: 3
+drop_interval_s: 60
+drop_mass_g: 100
+feed_window: "05:00~22:00"
+# daily_feed_cap_kg: 20
+photo_interval_s: 10
+light_off_delay_s: 90
+light_always_on: false
+night_window: "19:00~06:00"
+
+# 풍량 · 교정 (8 · 9장)
+pipe_area_m2: 0.0080073
+ff: 1.0
+f_ch4: 1.0
+f_co2: 1.0
+zero_raw_ch4: 0
+zero_raw_co2: 0
+f_low_ch4: 1.0
+# span_ch4_ppm: 실린더 인증값
+# span_co2_ppm: 실린더 인증값
+cal_time: "02:00"
+cal_valid_h: 48
+
+# 경보 (12장)
+flow_filter_Ls: 26.99
+flow_off_Ls: 2
+high_ch4_ppm: 4000
+high_ch4_s: 120
+box_heat_on_C: 5
+box_heat_off_C: 15
+rfid_enabled: false
+
+# ── 업데이트 · 서버 (명세에 없음 — 배포 방식에서 정함) ─────────────────────
+# 앱 업데이트: 공개 저장소 Releases 의 패키지를 받는다 (토큰 없음). 정보 화면 [확인] [받기] [적용].
+update:
+  repo: BlessingQ/Methanics-HMI-Public
+  channel: stable        # stable | beta (beta 면 vX.Y.Z-beta.N 도 받음)
+  auto: false            # true 면 check_interval_h 마다 확인 → 받기 → 적용(재시작). 교정 중에는 미룸
+  check_interval_h: 6
+
+# IONTEC IoT 관제 서버 (WebSocket): 온라인 · 운전 상태 실시간 표시, 원격 진단, 원격 업데이트.
+# 처음 연결하면 대시보드에 「승인 대기」로 나타납니다 → 관리자가 승인. 장비 ID 는 rpi-<Pi 시리얼> 자동.
+iot:
+  enabled: true
+  server_url: wss://iot.ionteclab.com/ws/device
+
+# pig_manager_server 측정 데이터 업로드 (1분 평균 + 현재 상태) — 모바일 앱에서 보기.
+# 서버에서 장비를 등록하고(node scripts/methanics-device.js add <device_id> <farmid>) 받은 키를 넣습니다.
+# 장비 ID 는 맨 위 device_id 를 씁니다.
+pig_server:
+  enabled: false
+  url: ""                # 예: https://<서버 주소>   (경로 /methanics/upload 는 앱이 붙임)
+  device_key: ""         # 등록 때 한 번만 보여 주는 키
+  interval_s: 60

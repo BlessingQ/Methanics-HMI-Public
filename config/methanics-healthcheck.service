@@ -1,0 +1,6 @@
+[Unit]
+Description=Methanics HMI health check (auto rollback on repeated boot failure)
+
+[Service]
+Type=oneshot
+ExecStart=/opt/methanics/bin/methanics-healthcheck

@@ -1,0 +1,23 @@
+# ~/.config/systemd/user/methanics-hmi.service
+# 부팅(자동 로그인) 후 메타닉스 HMI 앱을 전체화면으로 시작하고, 종료되면 5초 뒤 다시 시작한다.
+[Unit]
+Description=Methanics CH4 Measuring Feeder HMI
+After=default.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/opt/methanics/bin/methanics-run
+Restart=always
+RestartSec=5
+Environment=GDK_BACKEND=wayland,x11
+Environment=MTX_CONFIG=/etc/methanics/config.yaml
+Environment=MTX_DATA_DIR=/var/lib/methanics
+Environment=MTX_HEALTH_DIR=/opt/methanics/health
+Environment=MTX_APP_ROOT=/opt/methanics
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=methanics-hmi
+
+[Install]
+WantedBy=default.target
