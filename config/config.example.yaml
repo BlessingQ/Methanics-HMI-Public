@@ -22,11 +22,9 @@ expect_nvme: true
 # 칩 시리얼 번호(/dev/serial/by-id)로 기억해(/var/lib/methanics/ports.json) 이 값보다 먼저 씁니다. USB 구멍을 바꿔 꽂아도 그대로입니다.
 # 아래 /dev/mtx-* 는 udev 규칙(99-methanics-serial.rules)을 쓸 때의 이름입니다.
 ports:
-  modbus: /dev/mtx-modbus   # FUS-1T #1 · 9600 8N1 · GMP252 · EE650 · 센서노드
-  iontec: /dev/mtx-iontec   # FUS-1T #2 · 9600 8N1 · IOC-100 + BPC-100 공용 (BPC-100 은 9600 공용 회선 펌웨어 필요)
-  ch4: /dev/mtx-ch4         # Axetris USB-C 케이블 · RPi5 직결
+  modbus: /dev/mtx-modbus   # FUS-1T · RS-485 버스 #1 · 9600 8N1 · CH₄ Gasboard-2502 · GMP252 · EE650 · 센서노드
+  iontec: /dev/mtx-iontec   # FUS-1T (아이온텍 공용) · 9600 8N1 · IOC-100 + BPC-100 공용 (BPC-100 은 9600 공용 회선 펌웨어 필요)
   iontec_baud: 9600
-  ch4_baud: 9600
 
 addresses:
   gmp252: 240
@@ -36,6 +34,7 @@ addresses:
   ioc_gw: 1
   bpc_id: 1
   bpc_gw: 1
+  ch4: 200                  # Cubic Gasboard-2502 출하 기본 · 공용 주소 0xC8
 
 # 운전
 warmup_min: 30
@@ -79,7 +78,7 @@ cal_valid_h: 48
 # 경보 (12장)
 flow_filter_Ls: 26.99
 flow_off_Ls: 2
-high_ch4_ppm: 4000
+high_ch4_ppm: 4000         # GreenFeed 기준. 센서 상한(1,000 ppm)에 닿아 있는 것도 같은 경보 (high_ch4_s 지속)
 high_ch4_s: 120
 box_heat_on_C: 5
 box_heat_off_C: 15

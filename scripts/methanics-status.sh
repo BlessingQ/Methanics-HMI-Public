@@ -35,7 +35,7 @@ echo
 echo "--- 회선 포트 (config.yaml → 지금 실제 장치) ---"
 CONF=/etc/methanics/config.yaml
 if [[ -f "$CONF" ]]; then
-  for key in modbus iontec ch4; do
+  for key in modbus iontec; do
     port="$(sed -n '/^ports:/,/^[^ #]/p' "$CONF" | grep -E "^[[:space:]]+$key:" | head -n1 | sed -E 's/^[^:]+:[[:space:]]*//; s/[[:space:]]+#.*$//; s/^"//; s/"$//')"
     # 화면 「통신 포트」에서 기억한 장치(ports.json)가 설정 파일보다 먼저
     mem="$(jq -r --arg k "$key" '.[$k].path // empty' /var/lib/methanics/ports.json 2>/dev/null)"

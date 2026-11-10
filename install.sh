@@ -2,12 +2,12 @@
 # Methanics HMI 설치 스크립트 — Raspberry Pi 5 / Raspberry Pi OS (64-bit, Desktop, Bookworm 이상), M.2 NVMe 부팅 권장
 #
 # 하는 일:
-#   1. 필수 패키지 설치, 앱 사용자를 dialout · gpio 그룹에 추가, ModemManager 제거 (CH₄ 센서 USB 포트를 건드리지 않게)
+#   1. 필수 패키지 설치, 앱 사용자를 dialout · gpio 그룹에 추가, ModemManager 제거 (USB 시리얼 변환기에 AT 명령을 보내지 않게)
 #   2. /opt/methanics 구성 (releases/, current -> 심볼릭 링크, bin/, downloads/, health/), 데이터 /var/lib/methanics
 #   3. GitHub Releases 에서 최신 앱 패키지 다운로드 + sha256 검증 + 설치 (--local <tar.gz> 로 대체 가능)
 #   4. /etc/methanics/config.yaml 설정 파일 배치 (이미 있으면 유지)
 #   5. 시리얼 udev 규칙 템플릿 (/dev/mtx-* 고정 이름)
-#   6. /boot/firmware/config.txt: usb_max_current_enable=1 (CH₄ 센서 USB 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
+#   6. /boot/firmware/config.txt: usb_max_current_enable=1 (USB 허브 · 카메라 · 터치 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
 #      + 시각 권한 규칙(polkit) — 앱 설정 「시간 · RTC」 에서 시각을 맞출 수 있게
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
@@ -82,9 +82,9 @@ fi
 usermod -aG dialout "$APP_USER"
 getent group gpio >/dev/null && usermod -aG gpio "$APP_USER"   # 머리 진입 포토센서 (GPIO 입력)
 if [[ $KEEP_MM -eq 0 ]] && dpkg -s modemmanager >/dev/null 2>&1; then
-  # Axetris OI 2.4: 연결된 채 다른 프로그램이 포트를 열어 명령을 보내면 안 된다. ModemManager 는 새 USB 시리얼마다 AT 명령을 보낸다.
+  # ModemManager 는 새 USB 시리얼마다 AT 명령을 보낸다 — RS-485 버스에 엉뚱한 바이트가 나가 센서 응답이 깨질 수 있다.
   # LTE 는 외부 라우터(RUT241)가 맡으므로 Pi 에는 필요 없다.
-  log "ModemManager 제거 (CH₄ 센서 USB 시리얼 보호)"
+  log "ModemManager 제거 (USB 시리얼 변환기 보호)"
   systemctl disable --now ModemManager.service >/dev/null 2>&1 || true
   apt-get purge -y -qq modemmanager >/dev/null || warn "ModemManager 제거 실패"
 fi
@@ -136,13 +136,13 @@ else
 fi
 udevadm control --reload-rules && udevadm trigger || true
 
-# ── 6. config.txt (CH₄ 센서 USB 전원) ───────────────────────────────────────
+# ── 6. config.txt (USB 전원) ─────────────────────────────────────────────────
 BOOTCFG=/boot/firmware/config.txt
 [[ -f "$BOOTCFG" ]] || BOOTCFG=/boot/config.txt
 if [[ -f "$BOOTCFG" ]] && ! grep -qE '^usb_max_current_enable=1' "$BOOTCFG"; then
-  log "config.txt: usb_max_current_enable=1 추가 (USB 포트 합계 1.6 A — CH₄ 센서를 USB 5V 로 쓰기 때문, 재부팅 후 적용)"
+  log "config.txt: usb_max_current_enable=1 추가 (USB 포트 합계 1.6 A — 허브 · 카메라 · 터치, 재부팅 후 적용)"
   cp -a "$BOOTCFG" "$BOOTCFG.bak-methanics"
-  printf '\n[all]\n# Methanics: CH4 센서(Axetris)를 USB 5V 로 쓴다 — 27 W 공식 어댑터가 아니어도 USB 전류 제한을 푼다\nusb_max_current_enable=1\n' >> "$BOOTCFG"
+  printf '\n[all]\n# Methanics: USB 허브 · 카메라 · 터치 전원 — 27 W 공식 어댑터가 아니어도 USB 전류 제한을 푼다\nusb_max_current_enable=1\n' >> "$BOOTCFG"
 fi
 # RTC: Pi 5 보드 내장 RTC + 공식 충전식 배터리(ML-2020). 기본은 충전하지 않으므로 켠다 — 안 켜면 몇 달 뒤 방전돼 정전 때 시계가 초기화된다.
 # 충전식이 아닌 코인 전지(CR2032 등)를 달았으면 --no-rtc-charge (충전하면 위험).

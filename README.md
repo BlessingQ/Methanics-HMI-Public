@@ -13,7 +13,7 @@
 | 보드 | Raspberry Pi 5 (4 GB 이상) + M.2 HAT+ + NVMe SSD 256 GB (NVMe 부팅) |
 | OS | Raspberry Pi OS **64-bit, Desktop** (Bookworm 이상). Lite 는 안 됨 — 화면이 필요 |
 | 화면 | 10.1" 1280×800 정전식 터치 (HDMI + USB 터치) |
-| 통신 | USB-RS485 2채널 (FUS-1T: ① Modbus 센서 · ② IOC-100 + BPC-100 공용) + CH₄ 센서 USB-C 직결 |
+| 통신 | USB-RS485 2채널 (FUS-1T: ① Modbus 센서 — CH₄ Gasboard-2502 · CO₂ · 풍속 · 센서노드 · ② IOC-100 + BPC-100 공용) |
 | 네트워크 | 설치 · 업데이트 · 관제 서버 연결에 인터넷 (현장은 LTE 라우터). 측정 · 제어는 인터넷 없이 동작 |
 
 ## 2. 설치 (한 줄)
@@ -29,12 +29,12 @@ sudo reboot
 
 1. `git` 설치 → 이 저장소를 `~/Methanics-HMI-Public` 에 클론
 2. `install.sh` 를 `sudo` 로 실행
-   - 필수 패키지 · **한글 글꼴**(`fonts-noto-cjk`) · 한국어 로캘 설치, 사용자를 `dialout` · `gpio` 그룹에 추가, **ModemManager 제거** (CH₄ 센서 USB 포트 보호)
+   - 필수 패키지 · **한글 글꼴**(`fonts-noto-cjk`) · 한국어 로캘 설치, 사용자를 `dialout` · `gpio` 그룹에 추가, **ModemManager 제거** (USB 시리얼 변환기 보호)
    - `/opt/methanics/` 구성 (`releases/`, `current` 링크, `bin/`, `downloads/`, `health/`), 데이터 `/var/lib/methanics`
    - GitHub **Releases 의 최신 패키지**를 받아 **sha256 검증** 후 설치
    - `/etc/methanics/config.yaml` 설정 파일 생성 (이미 있으면 유지)
    - 시리얼 udev 규칙 템플릿 (`/dev/mtx-*`, 선택 — 보통은 앱 「통신 포트」 화면으로 지정)
-   - `config.txt` 에 `usb_max_current_enable=1` (CH₄ 센서 USB 5 V 전원) · **RTC 배터리 충전** (공식 충전식 배터리 전제) · NTP 켬
+   - `config.txt` 에 `usb_max_current_enable=1` (USB 허브 · 카메라 · 터치 전원) · **RTC 배터리 충전** (공식 충전식 배터리 전제) · NTP 켬
    - 시각 권한 규칙(polkit) — 앱 [설정] → 「시간 · RTC」 에서 인터넷 없이도 시각을 맞출 수 있게 (RTC 에도 기록)
    - 데스크톱 **자동 로그인**, **화면 꺼짐 방지**
    - **systemd 사용자 서비스** → 부팅 때 앱 자동 시작, 죽으면 5초 뒤 재시작
@@ -72,7 +72,7 @@ sudo ./install.sh --user $USER
 | 묶음 | 키 | 내용 |
 |---|---|---|
 | 장비 | `device_id` · `site_id` · `timezone` · `admin_pin` · `simulate` | 장비 번호 · 농장 · 시간대 · 관리자 PIN · 시뮬레이션(현장은 false) |
-| 포트 | `ports.modbus` · `iontec` · `ch4` | 보통은 고치지 않음 — 화면 「통신 포트」에서 지정한 것이 먼저. 번호 경로(`/dev/ttyUSB0`)를 적으면 처음 기동 때 시리얼 경로로 바꿔 기억 |
+| 포트 | `ports.modbus` · `iontec` (CH₄ 는 Modbus 버스, 주소 `addresses.ch4` = 200) | 보통은 고치지 않음 — 화면 「통신 포트」에서 지정한 것이 먼저. 번호 경로(`/dev/ttyUSB0`)를 적으면 처음 기동 때 시리얼 경로로 바꿔 기억 |
 | 업데이트 | `update.repo` · `channel` · `auto` · `check_interval_h` | 기본 이 저장소 · stable · **수동** · 6시간 |
 | 관제 서버 | `iot.enabled` · `iot.server_url` · `iot.upload` | 기본 켬 · `wss://iot.ionteclab.com/ws/device` · 1분 평균 측정 기록 업로드 켬 |
 
