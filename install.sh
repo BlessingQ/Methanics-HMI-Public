@@ -9,6 +9,7 @@
 #   5. 시리얼 udev 규칙 템플릿 (/dev/mtx-* 고정 이름)
 #   6. /boot/firmware/config.txt: usb_max_current_enable=1 (USB 허브 · 카메라 · 터치 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
 #      + 시각 권한 규칙(polkit) — 앱 설정 「시간 · RTC」 에서 시각을 맞출 수 있게
+#      + SSD 상태 읽기 권한(sudoers, smartctl 한 명령) — 앱 정보 → 시스템 「SSD」 수명 · 누적 쓰기
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
 #   9. 멈춤 감지 · 재시작은 앱 안 감시(watchdog)가 한다 — 별도 타이머 없음 (예전 methanics-healthcheck 가 있으면 지운다)
@@ -167,6 +168,20 @@ polkit.addRule(function(action, subject) {
 });
 RULES
 chmod 0644 /etc/polkit-1/rules.d/50-methanics-time.rules
+# 앱 정보 → 시스템 「SSD」 · 관제 서버 진단 · SSD_HEALTH 경보: NVMe 건강 로그(수명 사용률 · 누적 쓰기 · 비정상 종료 수)는 root 만 읽는다.
+# 이 사용자 · 이 명령(인자까지 고정) 하나만 비밀번호 없이 허용한다. 문법이 틀리면 sudo 전체가 막히므로 visudo 로 검사한 뒤에만 둔다
+SUDO_SSD=/etc/sudoers.d/methanics-ssd
+cat > "$SUDO_SSD.tmp" <<SUDO
+# Methanics HMI: NVMe SSD 상태 읽기 (앱 정보 -> 시스템 SSD). install.sh 가 만듦.
+$APP_USER ALL=(root) NOPASSWD: /usr/sbin/smartctl -j -A /dev/nvme0
+SUDO
+chmod 0440 "$SUDO_SSD.tmp"
+if visudo -cqf "$SUDO_SSD.tmp"; then
+  mv -f "$SUDO_SSD.tmp" "$SUDO_SSD"
+else
+  rm -f "$SUDO_SSD.tmp"
+  warn "SSD 상태 권한(sudoers) 검사 실패 — 앱에는 「SSD 못 읽음」으로 보입니다"
+fi
 
 # ── 7. 키오스크 ──────────────────────────────────────────────────────────────
 if [[ $KIOSK -eq 1 ]] && command -v raspi-config >/dev/null; then
