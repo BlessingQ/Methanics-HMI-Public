@@ -14,9 +14,7 @@ admin_pin: "1234"
 # true 면 실제 포트 대신 시뮬레이터로 동작합니다. 현장 장비에서는 절대 켜지 않습니다.
 simulate: false
 
-# 현장 장비는 M.2 NVMe 로 부팅합니다. SD 카드로 켜지면(NVMe 고장 · 빠짐) 상단에 「SD 부팅」을 띄우고 관제 서버에 진단을 보냅니다.
-# NVMe 없이 SD 로만 시험하는 장비는 false.
-expect_nvme: true
+# 장비는 SD 카드로만 부팅 · 저장합니다 (2026-11-16). 남은 용량은 앱 정보 → 시스템 「SD 카드 남은 용량」 · 10 % 미만이면 DISK_LOW.
 
 # 시리얼 포트. 보통은 고치지 않습니다 — 앱 설정 화면 「통신 포트」에서 USB 변환기를 골라 두면
 # 칩 시리얼 번호(/dev/serial/by-id)로 기억해(/var/lib/methanics/ports.json) 이 값보다 먼저 씁니다. USB 구멍을 바꿔 꽂아도 그대로입니다.
@@ -89,8 +87,9 @@ f_low_ch4: 1.0
 # Span 실린더 인증값 (합성공기 바탕) — 없으면 교정하지 않는다 (교정 만료 경보)
 # span_ch4_ppm: 500
 # span_co2_ppm: 5000
-cal_time: "02:00"          # 매일 자동 교정 (현지 시각)
-cal_valid_h: 48            # 마지막 성공 교정 뒤 이 시간이 지나면 교정 만료 (방문 무효)
+cal_time: "02:00"          # 자동 교정 시각 (현지 시각)
+cal_interval_d: 3          # 자동 교정 주기 1~7일 (마지막 성공 교정 날짜부터) — 설치 후 첫 몇 주는 1로 계수 변화를 본 뒤 3
+cal_valid_h: 96            # 마지막 성공 교정 뒤 이 시간이 지나면 교정 만료 (방문 무효) — 주기 + 하루보다 짧으면 앱이 올림
 cal_gas_s: 90              # Zero · Span 주입 [GreenFeed 90 s]
 cal_pause_s: 60            # 가스 사이 대기 [GreenFeed 60 s]
 cal_purge_s: 60            # 마지막 퍼지

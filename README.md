@@ -4,17 +4,17 @@
 
 > 이 저장소에는 **설치 스크립트와 빌드된 앱 패키지(Releases)만** 있습니다. 앱 소스 코드는 들어 있지 않습니다.
 
-처음 설치하는 장비는 **[초기 설정 안내서 (M.2 NVMe)](docs/1_초기설정_M2_NVMe.md)** 를 순서대로 따라 하세요.
+처음 설치하는 장비는 **[초기 설정 안내서 (SD 카드)](docs/1_초기설정_SD카드.md)** 를 순서대로 따라 하세요.
 
 ## 1. 대상 환경
 
 | 항목 | 요구 사항 |
 |---|---|
-| 보드 | Raspberry Pi 5 (4 GB 이상) + M.2 HAT+ + NVMe SSD 256 GB (NVMe 부팅) |
+| 보드 | Raspberry Pi 5 (4 GB 이상) + **고내구성 microSD 64 GB 이상** (SD 카드로 부팅 · 저장, 2026-11-16 — 사진을 90일 다 남기려면 128 GB 이상) |
 | OS | Raspberry Pi OS **64-bit, Desktop** (Bookworm 이상). Lite 는 안 됨 — 화면이 필요 |
 | 화면 | 10.1" 1280×800 정전식 터치 (HDMI + USB 터치) |
 | 통신 | USB-RS485 2채널 (FUS-1T: ① Modbus 센서 — CH₄ Gasboard-2502 · CO₂ · 풍속 · 센서노드 · ② IOC-100 + BPC-100 공용) |
-| 네트워크 | 설치 · 업데이트 · 관제 서버 연결에 인터넷 (현장은 LTE 라우터). 측정 · 제어는 인터넷 없이 동작 |
+| 네트워크 | 설치 · 업데이트 · 관제 서버 연결에 인터넷 (현장은 LTE 라우터 — Wi-Fi 또는 유선 LAN). 측정 · 제어는 인터넷 없이 동작. 앱 상단에 Wi-Fi · 인터넷 상태 |
 
 ## 2. 설치 (한 줄)
 
@@ -36,7 +36,6 @@ sudo reboot
    - 시리얼 udev 규칙 템플릿 (`/dev/mtx-*`, 선택 — 보통은 앱 「통신 포트」 화면으로 지정)
    - `config.txt` 에 `usb_max_current_enable=1` (USB 허브 · 카메라 · 터치 전원) · **RTC 배터리 충전** (공식 충전식 배터리 전제) · NTP 켬
    - 시각 권한 규칙(polkit) — 앱 [설정] → 「시간 · RTC」 에서 인터넷 없이도 시각을 맞출 수 있게 (RTC 에도 기록)
-   - SSD 상태 읽기 권한(`/etc/sudoers.d/methanics-ssd`, `smartctl -j -A /dev/nvme0` 한 명령만) — 앱 [정보] → 「SSD」 수명 · 누적 쓰기
    - 데스크톱 **자동 로그인**, **화면 꺼짐 방지**
    - **systemd 사용자 서비스** → 부팅 때 앱 자동 시작, 죽으면 5초 뒤 재시작
    - 멈춤 감지는 **앱 안에 내장** (제어 틱 · 화면이 3분 멈추면 앱이 스스로 끝내고 서비스가 다시 켬). 업데이트 뒤 새 버전이 뜨지 않으면 **자동 롤백**
@@ -64,7 +63,7 @@ sudo ./install.sh --user $USER
 2. **통신 포트 지정** — 앱 [설정] → **「통신 포트」** 에서 회선마다 [지정] → USB 변환기를 고르고 [지금 다시 시작]. 칩 시리얼 번호로 기억하므로(`/var/lib/methanics/ports.json`) USB 번호가 바뀌거나 다른 구멍에 꽂아도 그대로 열립니다. 시리얼이 없는 변환기는 꽂은 구멍 위치로 기억합니다.
 3. **관제 서버 승인** — 앱이 IONTEC IoT 관제 서버에 처음 연결하면 대시보드에 「승인 대기」(장치 종류 「메타닉스」)로 나타납니다. 관리자가 승인하면 원격 진단 · 원격 업데이트를 쓸 수 있고, **1분 평균 측정 기록**이 대시보드 「측정 기록」 표에 쌓이기 시작합니다.
 
-자세한 순서와 확인 체크리스트: [초기 설정 안내서](docs/1_초기설정_M2_NVMe.md) 8 · 9장.
+자세한 순서와 확인 체크리스트: [초기 설정 안내서](docs/1_초기설정_SD카드.md) 5 · 6장.
 
 ## 4. 설정 파일 `/etc/methanics/config.yaml`
 
@@ -83,8 +82,7 @@ sudo ./install.sh --user $USER
 
 | 명령 | 설명 |
 |---|---|
-| `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 관제 서버 설정 · 시각(RTC · NTP) · 저장 장치 요약 |
-| `methanics-nvme-check` | NVMe 부팅 · 부팅 순서 · PCIe 속도 점검 |
+| `methanics-status` | 버전 · 서비스 · 헬스 · 포트 · 관제 서버 설정 · 시각(RTC · NTP) · SD 카드 남은 용량 · 네트워크 요약 |
 | `methanics-list-serial` | USB 시리얼 변환기 식별 정보 (칩 시리얼 · USB 구멍 위치) |
 | `journalctl --user -u methanics-hmi -f` | 앱 로그 실시간 보기 |
 | `systemctl --user restart methanics-hmi` | 앱 재시작 |
@@ -129,7 +127,8 @@ Release 태그는 `vX.Y.Z` (prerelease 는 `vX.Y.Z-beta.N`, `update.channel: bet
 
 | 증상 | 확인 |
 |---|---|
-| 상단에 빨간 「SD 부팅」 | NVMe 대신 SD 카드로 켜짐 = NVMe 고장 · 빠짐 · 부팅 순서. `methanics-nvme-check`. SD 는 복사 당시 상태라 설정 · 버전 확인 (SD 로만 시험하는 장비는 `expect_nvme: false`) |
+| 「저장 공간이 10 % 미만」 경보 | 정상 동작 — 오래된 사진부터 지우는 중. 더 오래 남기려면 큰 SD 카드로 (안내서 7장 복사) |
+| 상단 Wi-Fi · 지구 아이콘이 빨강 | Wi-Fi(또는 LAN) 연결 · LTE 라우터의 인터넷 (안내서 8장) |
 | 설치할 때 터미널 한글이 □ 로 깨짐 | 새 OS 에 한글 글꼴이 없어서 — `bootstrap.sh` 가 맨 먼저 글꼴(`fonts-noto-cjk`)을 깐다. 그래도 깨지면 터미널을 닫았다 열고 같은 명령을 한 번 더 (반복해도 안전) |
 | 부팅 뒤 바탕화면만 보임 | `methanics-status` → `current` 링크, `journalctl --user -u methanics-hmi -n 50` |
 | 서비스가 **masked** / 유닛 파일 0바이트 | 전원 급차단 흔적. `sudo methanics-guard` (재부팅 때 자동) |
@@ -148,7 +147,7 @@ Release 태그는 `vX.Y.Z` (prerelease 는 `vX.Y.Z-beta.N`, `update.channel: bet
 bootstrap.sh                 curl 한 줄 설치 진입점
 install.sh                   설치 스크립트
 uninstall.sh                 제거
-docs/1_초기설정_M2_NVMe.md    처음 설치 안내서 (M.2 HAT+ 장착 → NVMe 부팅 → 앱 설치 → 현장 설정)
+docs/1_초기설정_SD카드.md     처음 설치 안내서 (SD 카드에 OS → 앱 설치 → 현장 설정 → 예비 카드)
 scripts/
   methanics-fetch-release.sh   Releases 다운로드 · sha256 검증 · 설치
   methanics-apply-update.sh    current 링크 교체 · 재시작 · 헬스 대기 · 실패 시 롤백
@@ -157,7 +156,6 @@ scripts/
   methanics-guard.sh           부팅 때 자동 시작 유닛 점검 · 복구 (root)
   (멈춤 감지 · 재시작은 앱 안 감시 — 별도 스크립트 없음)
   methanics-status.sh          상태 요약
-  methanics-nvme-check.sh      NVMe 부팅 점검
   methanics-list-serial.sh     USB 시리얼 식별 정보
 config/
   methanics-hmi.service          systemd 사용자 서비스

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Methanics HMI 설치 스크립트 — Raspberry Pi 5 / Raspberry Pi OS (64-bit, Desktop, Bookworm 이상), M.2 NVMe 부팅 권장
+# Methanics HMI 설치 스크립트 — Raspberry Pi 5 / Raspberry Pi OS (64-bit, Desktop, Bookworm 이상), SD 카드 부팅 (2026-11-16)
 #
 # 하는 일:
 #   1. 필수 패키지 설치, 앱 사용자를 dialout · gpio 그룹에 추가, ModemManager 제거 (USB 시리얼 변환기에 AT 명령을 보내지 않게)
@@ -9,7 +9,6 @@
 #   5. 시리얼 udev 규칙 템플릿 (/dev/mtx-* 고정 이름)
 #   6. /boot/firmware/config.txt: usb_max_current_enable=1 (USB 허브 · 카메라 · 터치 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
 #      + 시각 권한 규칙(polkit) — 앱 설정 「시간 · RTC」 에서 시각을 맞출 수 있게
-#      + SSD 상태 읽기 권한(sudoers, smartctl 한 명령) — 앱 정보 → 시스템 「SSD」 수명 · 누적 쓰기
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
 #   9. 멈춤 감지 · 재시작은 앱 안 감시(watchdog)가 한다 — 별도 타이머 없음 (예전 methanics-healthcheck 가 있으면 지운다)
@@ -66,8 +65,8 @@ else
   warn "Raspberry Pi 5 가 아닌 것으로 보입니다: $(tr -d '\0' < /proc/device-tree/model 2>/dev/null || echo unknown)"
 fi
 case "$(findmnt -n -o SOURCE / 2>/dev/null)" in
-  /dev/nvme*) log "부팅 장치: NVMe ✓" ;;
-  *) warn "NVMe 로 부팅하지 않았습니다 ($(findmnt -n -o SOURCE /)). 현장 장비는 NVMe 부팅을 권장합니다 — docs/1_초기설정_M2_NVMe.md" ;;
+  /dev/mmcblk*) log "부팅 장치: SD 카드 ✓ ($(df -h --output=size / | tail -1 | tr -d ' '))" ;;
+  *) warn "SD 카드가 아닌 장치로 부팅했습니다 ($(findmnt -n -o SOURCE /)). 현장 장비는 SD 카드로 부팅합니다 — docs/1_초기설정_SD카드.md" ;;
 esac
 
 # ── 1. 패키지 ────────────────────────────────────────────────────────────────
@@ -98,14 +97,16 @@ install -d -o "$APP_USER" -g "$APP_USER" "$APP_ROOT" "$APP_ROOT/releases" "$APP_
 install -d -o "$APP_USER" -g "$APP_USER" -m 0750 "$DATA_DIR"
 install -d "$CONF_DIR"
 
-for s in fetch-release apply-update rollback run list-serial status nvme-check; do
+for s in fetch-release apply-update rollback run list-serial status; do
   install -m 0755 -o "$APP_USER" -g "$APP_USER" "$SRC_DIR/scripts/methanics-$s.sh" "$APP_ROOT/bin/methanics-$s"
 done
 install -m 0755 -o root -g root "$SRC_DIR/scripts/methanics-guard.sh" "$APP_ROOT/bin/methanics-guard"
 ln -sfn "$APP_ROOT/bin/methanics-guard" /usr/local/sbin/methanics-guard
-for s in status fetch-release apply-update rollback list-serial nvme-check; do
+for s in status fetch-release apply-update rollback list-serial; do
   ln -sfn "$APP_ROOT/bin/methanics-$s" "/usr/local/bin/methanics-$s"
 done
+# 2026-11-16 SD 카드 부팅으로 바꾸며 없앤 것 (예전 설치에 남아 있으면 지움): NVMe 점검 · SSD 상태 읽기 권한
+rm -f /usr/local/bin/methanics-nvme-check "$APP_ROOT/bin/methanics-nvme-check" /etc/sudoers.d/methanics-ssd
 printf 'MTX_REPO=%s\n' "$REPO" > "$APP_ROOT/repo.env"
 printf 'APP_USER=%s\nAPP_UID=%s\nAPP_HOME=%s\n' "$APP_USER" "$APP_UID" "$APP_HOME" > "$APP_ROOT/app.env"
 
@@ -168,20 +169,6 @@ polkit.addRule(function(action, subject) {
 });
 RULES
 chmod 0644 /etc/polkit-1/rules.d/50-methanics-time.rules
-# 앱 정보 → 시스템 「SSD」 · 관제 서버 진단 · SSD_HEALTH 경보: NVMe 건강 로그(수명 사용률 · 누적 쓰기 · 비정상 종료 수)는 root 만 읽는다.
-# 이 사용자 · 이 명령(인자까지 고정) 하나만 비밀번호 없이 허용한다. 문법이 틀리면 sudo 전체가 막히므로 visudo 로 검사한 뒤에만 둔다
-SUDO_SSD=/etc/sudoers.d/methanics-ssd
-cat > "$SUDO_SSD.tmp" <<SUDO
-# Methanics HMI: NVMe SSD 상태 읽기 (앱 정보 -> 시스템 SSD). install.sh 가 만듦.
-$APP_USER ALL=(root) NOPASSWD: /usr/sbin/smartctl -j -A /dev/nvme0
-SUDO
-chmod 0440 "$SUDO_SSD.tmp"
-if visudo -cqf "$SUDO_SSD.tmp"; then
-  mv -f "$SUDO_SSD.tmp" "$SUDO_SSD"
-else
-  rm -f "$SUDO_SSD.tmp"
-  warn "SSD 상태 권한(sudoers) 검사 실패 — 앱에는 「SSD 못 읽음」으로 보입니다"
-fi
 
 # ── 7. 키오스크 ──────────────────────────────────────────────────────────────
 if [[ $KIOSK -eq 1 ]] && command -v raspi-config >/dev/null; then
@@ -246,7 +233,7 @@ echo "  앱 경로      : $APP_ROOT/current  ->  $(readlink -f "$APP_ROOT/curren
 echo "  설정         : $CONF_DIR/config.yaml   (device_id · admin_pin · iot 를 현장에 맞게)"
 echo "  데이터       : $DATA_DIR   (업데이트 기록 · 업로드 대기열 — 업데이트 · 롤백해도 유지)"
 echo "  로그         : journalctl --user -u methanics-hmi -f   (사용자 $APP_USER 로)"
-echo "  상태         : methanics-status   ·   NVMe 점검: methanics-nvme-check"
+echo "  상태         : methanics-status   (버전 · 서비스 · 포트 · 시각 · SD 카드 남은 용량 · 네트워크)"
 echo "  통신 포트    : 앱 설정 → 통신 포트 [지정] (USB 칩 시리얼로 기억)  ·  확인: methanics-list-serial"
 echo "  업데이트     : methanics-fetch-release --activate   /  롤백: methanics-rollback"
 echo "  자동시작 복구: sudo methanics-guard   (부팅마다 자동 실행됨)"

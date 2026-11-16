@@ -73,8 +73,17 @@ case "$cv" in
   *) echo "  RTC 충전    : 켜짐 (${cv} µV)" ;;
 esac
 echo
-echo "--- 저장 장치 ---"
-"$APP_ROOT/bin/methanics-nvme-check" --short 2>/dev/null || echo "  (methanics-nvme-check 없음)"
+echo "--- 저장 장치 (SD 카드) ---"
+echo "  부팅 장치   : $(findmnt -n -o SOURCE / 2>/dev/null || echo '?')"
+df -h --output=size,used,avail,pcent /var/lib/methanics 2>/dev/null | tail -1 | awk '{printf "  SD 카드     : 전체 %s · 사용 %s · 남음 %s (사용 %s) — 남은 용량 10 %% 미만이면 앱이 오래된 사진부터 지움\n", $1, $2, $3, $4}'
+echo
+echo "--- 네트워크 ---"
+if command -v nmcli >/dev/null; then
+  nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device 2>/dev/null | grep -E ':(wifi|ethernet):' | sed 's/^/  /'
+  echo "  인터넷      : $(nmcli networking connectivity 2>/dev/null || echo '?')"
+else
+  ip -brief address 2>/dev/null | sed 's/^/  /'
+fi
 echo
 echo "--- 디스플레이 ---"
 echo "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-} DISPLAY=${DISPLAY:-} XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-}"
