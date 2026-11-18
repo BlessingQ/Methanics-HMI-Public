@@ -2,7 +2,7 @@
 # Methanics HMI 설치 스크립트 — Raspberry Pi 5 / Raspberry Pi OS (64-bit, Desktop, Bookworm 이상), SD 카드 부팅 (2026-11-16)
 #
 # 하는 일:
-#   1. 필수 패키지 설치, 앱 사용자를 dialout · gpio 그룹에 추가, ModemManager 제거 (USB 시리얼 변환기 · CH₄ 센서에 AT 명령을 보내지 않게)
+#   1. 필수 패키지 설치, 앱 사용자를 dialout 그룹에 추가, ModemManager 제거 (USB 시리얼 변환기 · CH₄ 센서에 AT 명령을 보내지 않게)
 #   2. /opt/methanics 구성 (releases/, current -> 심볼릭 링크, bin/, downloads/, health/), 데이터 /var/lib/methanics
 #   3. GitHub Releases 에서 최신 앱 패키지 다운로드 + sha256 검증 + 설치 (--local <tar.gz> 로 대체 가능)
 #   4. /etc/methanics/config.yaml 설정 파일 배치 (이미 있으면 유지)
@@ -74,14 +74,13 @@ log "패키지 설치"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 # fonts-noto-cjk: 터미널 · 바탕화면의 한글 (앱 화면은 글꼴을 앱에 넣어 둠) — ARC-100 과 같음
-# gpiod: 앱이 머리 진입 포토센서(GPIO)를 gpiomon 으로 읽는다 · ffmpeg: 방문 사진(UVC 카메라) 한 장씩
-apt-get install -y -qq curl jq git ca-certificates libgtk-3-0 liblzma5 libstdc++6 libblkid1 smartmontools fonts-noto-cjk locales gpiod ffmpeg >/dev/null
+# ffmpeg: 방문 사진(UVC 카메라) 한 장씩. 머리 진입 포토센서는 IOC-100 입력 6 이라 GPIO 도구(gpiod)는 쓰지 않는다 (2026-11-18)
+apt-get install -y -qq curl jq git ca-certificates libgtk-3-0 liblzma5 libstdc++6 libblkid1 smartmontools fonts-noto-cjk locales ffmpeg >/dev/null
 # 앱 실행 래퍼가 LANG=ko_KR.UTF-8 을 쓰므로 로캘을 만들어 둔다 (시스템 기본 언어는 바꾸지 않음)
 if ! locale -a 2>/dev/null | grep -qi '^ko_KR\.utf-\?8$'; then
   sed -i 's/^# *\(ko_KR\.UTF-8 UTF-8\)/\1/' /etc/locale.gen && locale-gen >/dev/null 2>&1 || warn "ko_KR.UTF-8 로캘 생성 실패"
 fi
 usermod -aG dialout "$APP_USER"
-getent group gpio >/dev/null && usermod -aG gpio "$APP_USER"   # 머리 진입 포토센서 (GPIO 입력)
 getent group video >/dev/null && usermod -aG video "$APP_USER" # 방문 사진 카메라 (/dev/video0)
 if [[ $KEEP_MM -eq 0 ]] && dpkg -s modemmanager >/dev/null 2>&1; then
   # ModemManager 는 새 USB 시리얼마다 AT 명령을 보낸다 — RS-485 버스에 엉뚱한 바이트가 나가 센서 응답이 깨질 수 있고,

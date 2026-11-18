@@ -36,13 +36,6 @@ addresses:
   bpc_gw: 1
   pump_ctrl: 30             # 펌프 속도 컨트롤러 JPF4816 — 출하 1 은 센서노드와 겹침 → 설치 전 표시부 버튼으로 A30
 
-# 머리 진입 포토센서 (BEN300 PNP → 절연 입력 P3013-2 → RPi GPIO, 내부 풀업). 핀 · 극성은 설치 때 확인
-gpio:
-  enabled: true
-  chip: ""                  # 비우면 RP1 칩 자동 (gpiochip0 · gpiochip4)
-  head_line: 17             # BCM 번호 (헤더 11번 핀)
-  head_active_high: false   # 머리가 있을 때 HIGH 면 true (포토커플러 출력은 보통 LOW)
-
 # 방문 사진 카메라 (Arducam B0448 UVC — 리눅스 기본 드라이버). 앱이 ffmpeg 로 한 장씩 받는다
 camera:
   enabled: true
@@ -55,7 +48,8 @@ camera:
 warmup_min: 30
 sleep_rewarm_min: 10
 
-# 방문 판정 (6장)
+# 방문 판정 (6장) — 머리 진입 포토센서 BEN300 → 24V 릴레이 접점 → IOC-100 입력 6 (머리 있음 = 1, IOC 를 1 s 마다 읽음)
+head_input_invert: false   # 머리가 있을 때 입력 6 이 0 으로 결선됐으면 true
 head_on_debounce_s: 0.5
 head_window_s: 10
 head_in_min_s: 2

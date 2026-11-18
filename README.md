@@ -29,7 +29,7 @@ sudo reboot
 
 1. `git` 설치 → 이 저장소를 `~/Methanics-HMI-Public` 에 클론
 2. `install.sh` 를 `sudo` 로 실행
-   - 필수 패키지 · **한글 글꼴**(`fonts-noto-cjk`) · 한국어 로캘 설치, 사용자를 `dialout` · `gpio` 그룹에 추가, **ModemManager 제거** (USB 시리얼 변환기 · CH₄ 센서 보호)
+   - 필수 패키지 · **한글 글꼴**(`fonts-noto-cjk`) · 한국어 로캘 설치, 사용자를 `dialout` 그룹에 추가, **ModemManager 제거** (USB 시리얼 변환기 · CH₄ 센서 보호)
    - `/opt/methanics/` 구성 (`releases/`, `current` 링크, `bin/`, `downloads/`, `health/`), 데이터 `/var/lib/methanics`
    - GitHub **Releases 의 최신 패키지**를 받아 **sha256 검증** 후 설치
    - `/etc/methanics/config.yaml` 설정 파일 생성 (이미 있으면 유지)
