@@ -33,6 +33,7 @@ addresses:
   bpc_id: 1
   bpc_gw: 1
   ch4: 200                  # Cubic Gasboard-2502 출하 기본 · 공용 주소 0xC8
+  pump_ctrl: 30             # 펌프 속도 컨트롤러 JPF4816 — 출하 1 은 센서노드와 겹침 → 설치 전 표시부 버튼으로 A30
 
 # 머리 진입 포토센서 (BEN300 PNP → 절연 입력 P3013-2 → RPi GPIO, 내부 풀업). 핀 · 극성은 설치 때 확인
 gpio:
@@ -104,6 +105,17 @@ high_ch4_ppm: 4000         # GreenFeed 기준. 센서 상한(1,000 ppm)에 닿�
 high_ch4_s: 120
 box_heat_on_C: 5
 box_heat_off_C: 15
+# 표시함 히터 (IOC 출력 3) — 풍속계 공기 온도 기준, 공기 온도가 없으면 RPi5 CPU 온도 기준 (시운전 때 맞춤)
+disp_heater_on_c: 5
+disp_heater_off_c: 10
+disp_heater_cpu_on_c: 25
+disp_heater_cpu_off_c: 40
+# 샘플 펌프 (JPF4816 · 16.3.4) — 듀티 · 기준 회전수는 화면 「수동 제어 → 펌프 속도」에서 저장한 값(데이터 폴더 pump.json)이 먼저
+pump_duty_pct: 100         # 10~100 % — 시운전 때 유량계로 교정 중 0.5~1 L/min 이 되게 정함 (측정 · 교정 공통)
+pump_fg_ppr: 3             # 펌프 1회전 FG 펄스 (BAP-2445 = 3)
+pump_rpm_ref: 0            # PUMP_SPEED 기준 회전수 — 0 이면 이 경보 끔
+pump_rpm_tol_pct: 20
+chime_s: 2                 # 부저 1회 길이 = IOC 출력 8 OutTime (설치 때 IOC 에 넣는 값 · 급이 차임 없음)
 rfid_enabled: false
 
 # ── 업데이트 · 서버 (명세에 없음 — 배포 방식에서 정함) ─────────────────────
