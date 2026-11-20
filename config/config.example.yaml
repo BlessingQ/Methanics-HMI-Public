@@ -86,8 +86,14 @@ canB_co2_ppm: 5000         # 캔 B (SV1) CO₂ — 3,000~7,000
 canA_co2_ppm: 0            # 성적서의 불순물: 캔 A 의 CO₂ (없으면 0)
 canB_ch4_ppm: 0            # 성적서의 불순물: 캔 B 의 CH₄ (없으면 0)
 cal_time: "02:00"          # 자동 교정 시각 (현지 시각)
-cal_interval_d: 3          # 자동 교정 주기 1~7일 (마지막 성공 교정 날짜부터) — 설치 후 첫 몇 주는 1로 계수 변화를 본 뒤 3
-cal_valid_h: 96            # 마지막 성공 교정 뒤 이 시간이 지나면 교정 만료 (방문 무효) — 주기 + 하루보다 짧으면 앱이 올림
+# 교정 주기 자동 조정 (9.1.2 · 2026-11-20): 1 → 3 → 7일 — 같은 주기에서 연속 3회 · 계수 변화 2 % 이하면 늘리고,
+# 2~5 % 면 한 단계 줄이고, 실패 · [캔 교체] · [주기 초기화] 면 1일. 만료는 주기 × 24 + 24 시간 (앱이 맞춤)
+cal_interval_mode: auto    # auto | fixed (fixed 면 아래 cal_interval_d · cal_valid_h 고정)
+# cal_interval_steps: [1, 3, 7]
+# cal_stable_n: 3
+# cal_stable_pct: 2
+# cal_interval_d: 3        # fixed 일 때만 — 1~7일 (마지막 성공 교정 날짜부터)
+# cal_valid_h: 96          # fixed 일 때만 — 주기 + 하루보다 짧으면 앱이 올림
 cal_gas_s: 90              # Zero · Span 주입 [GreenFeed 90 s]
 cal_pause_s: 60            # 가스 사이 대기 [GreenFeed 60 s]
 cal_purge_s: 60            # 마지막 퍼지
