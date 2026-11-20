@@ -75,6 +75,7 @@ sudo ./install.sh --user $USER
 | 포트 | `ports.modbus` · `iontec` · `ch4` (CH₄ Axetris USB 직결 · 9600) | 보통은 고치지 않음 — 화면 「통신 포트」에서 지정한 것이 먼저. 번호 경로(`/dev/ttyUSB0`)를 적으면 처음 기동 때 시리얼 경로로 바꿔 기억 |
 | 업데이트 | `update.repo` · `channel` · `auto` · `check_interval_h` | 기본 이 저장소 · stable · **수동** · 6시간 |
 | 관제 서버 | `iot.enabled` · `iot.server_url` · `iot.upload` | 기본 켬 · `wss://iot.ionteclab.com/ws/device` · 1분 평균 측정 기록 업로드 켬 |
+| CO₂ Recovery | `site_alt_m` · `recovery_*` · `kcheck_s` · `addresses.p1` | **설치 고도 `site_alt_m` 을 넣어야 함**(비우면 Recovery 안 함) · 기본 30일마다 03:00 · `recovery_k_verified: false` 면 결과만 기록하고 FF 는 그대로 · P1 압력 센서 SSG-C 주소 31 (앞면 키로 맞춤) |
 
 측정 · 교정 파라미터(명세 15장)는 예시 파일의 주석을 보세요.
 

@@ -20,7 +20,7 @@ simulate: false
 # 칩 시리얼 번호(/dev/serial/by-id)로 기억해(/var/lib/methanics/ports.json) 이 값보다 먼저 씁니다. USB 구멍을 바꿔 꽂아도 그대로입니다.
 # 아래 /dev/mtx-* 는 udev 규칙(99-methanics-serial.rules)을 쓸 때의 이름입니다.
 ports:
-  modbus: /dev/mtx-modbus   # FUS-1T · RS-485 버스 #1 · 9600 8N1 · GMP252 · EE650 · 센서노드 · 펌프 속도 컨트롤러
+  modbus: /dev/mtx-modbus   # FUS-1T · RS-485 버스 #1 · 9600 8N1 · GMP252 · EE650 · 센서노드 · 펌프 속도 컨트롤러 · P1 압력 센서
   iontec: /dev/mtx-iontec   # FUS-1T (아이온텍 공용) · 9600 8N1 · IOC-100 + BPC-100 공용 (BPC-100 은 9600 공용 회선 펌웨어 필요)
   ch4: /dev/mtx-ch4         # CH₄ Axetris LGD Compact Ultra — 정품 M8–USB-C 케이블 · RPi5 USB 직결 (허브 거치지 않음)
   iontec_baud: 9600
@@ -37,6 +37,7 @@ addresses:
   bpc_id: 1
   bpc_gw: 1
   pump_ctrl: 30             # 펌프 속도 컨트롤러 JPF4816 — 출하 1 은 센서노드와 겹침 → 설치 전 표시부 버튼으로 A30
+  p1: 31                    # CO₂ Recovery P1 압력 센서 SSG-C — 출하 1 → 설치 전 앞면 키로 Addr 31 · bAUd 9600 · Unit kPa
   # flow: 1                # 시료 유량계 주소 1~128 — 비우면 앱이 훑어 찾고 데이터 폴더 flow.json 에 기억
 
 # 방문 사진 카메라 (Arducam B0448 UVC — 리눅스 기본 드라이버). 앱이 ffmpeg 로 한 장씩 받는다
@@ -76,7 +77,7 @@ night_window: "19:00~06:00"
 
 # 풍량 · 교정 (8 · 9장)
 pipe_area_m2: 0.0080073
-ff: 1.0
+ff: 1.0                    # 풍량 보정계수 처음 값 — CO₂ Recovery 가 바꾸면 calibration.json 의 값을 먼저 씀
 # 교정 계수 처음 값 — 교정에 성공하면 앱이 데이터 폴더 calibration.json 에 새 계수를 남기고 그것을 먼저 쓴다
 f_ch4: 1.0
 f_co2: 1.0
@@ -97,17 +98,35 @@ cal_interval_mode: auto    # auto | fixed (fixed 면 아래 cal_interval_d · ca
 # cal_stable_pct: 2
 # cal_interval_d: 3        # fixed 일 때만 — 1~7일 (마지막 성공 교정 날짜부터)
 # cal_valid_h: 96          # fixed 일 때만 — 주기 + 하루보다 짧으면 앱이 올림
-cal_gas_s: 90              # Zero · Span 주입 [GreenFeed 90 s]
-cal_pause_s: 60            # 가스 사이 대기 [GreenFeed 60 s]
+cal_gas_s: 90              # 캔 B · 캔 A 각각 주입
+cal_pause_s: 60            # 캔 사이 대기
 cal_purge_s: 60            # 마지막 퍼지
 cal_quiet_min: 5           # 최근 이 분 동안 머리 진입이 없어야 자동 교정 시작 (아니면 5분 뒤 다시, 최대 6회)
 zero_tol_ch4: 5            # Zero 허용 오차 ppm
 zero_tol_co2: 50
 
+# CO₂ Recovery (9.2 · 2026-11-19 임계 오리피스식) — CO₂ 용기 → SV5(IOC 출력 9) → P1 → 오리피스 → 흡입구.
+# 넣은 양(P1 · 관로 온도로 계산)과 관로에서 잰 양으로 풍량 보정계수 FF 를 구함 · 상태 RECOVERY 동안 급이 · 방문 판정 멈춤.
+# 용기 잔량 · 마지막 실행은 데이터 폴더 recovery.json. IOC 출력 9 OutTime 은 설치 때 250 s.
+# site_alt_m: 1900         # 설치 고도 m — 비우면 Recovery 안 함 · 키르기스스탄 현장 약 1,900
+recovery_enable: true      # false 면 자동 · 수동 모두 안 하고 P1 도 읽지 않음
+recovery_interval_d: 30    # 마지막으로 끝까지 한 Recovery 날짜에서 이 날수 뒤 — 7~90
+recovery_time: "03:00"     # 자동 실행 시각 (현지) — 여기부터 2시간 안 (조건이 안 맞으면 10분마다 다시)
+recovery_release_s: 180    # SV5 열고 방출 — 30~240 (SV5 OutTime 250 s 보다 짧게)
+recovery_wait_s: 180       # 닫고 기준선 회복 대기 — 60~600
+recovery_count: 3          # 방출 횟수 — 1~5 (기본 한 번 약 19분)
+recovery_k: 0.0054         # 오리피스 계수 g·K^0.5/(kPa·s) — Ø0.4 계산 추정값 · 공장 「오리피스 k 확인」 값으로 바꿈
+recovery_k_verified: false # 공장 확인 전 — FF 안 바꿈 (결과만 기록)
+recovery_p1_min_kpa: 300   # 방출 5 s 뒤 P1 절대압이 이 아래 → 중단 · RECOVERY_GAS_LOW
+recovery_p1_max_kpa: 450   # P1 게이지가 이 위 → 중단 · RECOVERY_P1 (안전밸브 0.49 MPa 전에)
+recovery_min_temp_c: -10   # 관로 온도가 이 아래면 시작 안 함 (SV5 저온 동작은 시운전 확인)
+recovery_gas_g: 2500       # 새 용기 CO₂ g — [CO₂ 용기 교체] 때 이 값에서 넣은 양을 빼 감 (1회 약 75 g)
+kcheck_s: 90               # 공장 「오리피스 k 확인」 (b) 기준 유량계로 잴 때 1회 방출 s
+
 # 경보 (12장)
 flow_filter_Ls: 26.99
 flow_off_Ls: 2
-high_ch4_ppm: 4000         # GreenFeed 기준 (Axetris 측정 범위 0~40,000 ppm)
+high_ch4_ppm: 4000         # 안전 · 센서 이상 (Axetris 측정 범위 0~40,000 ppm)
 high_ch4_s: 120
 box_heat_on_C: 5
 box_heat_off_C: 15
