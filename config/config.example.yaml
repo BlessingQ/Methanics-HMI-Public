@@ -25,6 +25,8 @@ ports:
   ch4: /dev/mtx-ch4         # CH₄ Axetris LGD Compact Ultra — 정품 M8–USB-C 케이블 · RPi5 USB 직결 (허브 거치지 않음)
   iontec_baud: 9600
   ch4_baud: 9600            # Axetris 기본 9600 8N1 — USB 케이블에서도 같은지 입고 때 확인
+  flow: /dev/mtx-flow       # 시료 유량계 Siargo MF4003 — USB-RS485 #4 · 38400 · 보낼 때 MARK 패리티 (16.7)
+  flow_baud: 38400
 
 addresses:
   gmp252: 240
@@ -35,6 +37,7 @@ addresses:
   bpc_id: 1
   bpc_gw: 1
   pump_ctrl: 30             # 펌프 속도 컨트롤러 JPF4816 — 출하 1 은 센서노드와 겹침 → 설치 전 표시부 버튼으로 A30
+  # flow: 1                # 시료 유량계 주소 1~128 — 비우면 앱이 훑어 찾고 데이터 폴더 flow.json 에 기억
 
 # 방문 사진 카메라 (Arducam B0448 UVC — 리눅스 기본 드라이버). 앱이 ffmpeg 로 한 장씩 받는다
 camera:
@@ -111,6 +114,10 @@ box_heat_off_C: 15
 # 샘플 펌프 (JPF4816 · 16.3.4) — 듀티 · 기준 회전수는 화면 「수동 제어 → 펌프 속도」에서 저장한 값(데이터 폴더 pump.json)이 먼저
 pump_duty_pct: 100         # 10~100 % — 시운전 때 유량계로 교정 중 0.5~1 L/min 이 되게 정함 (측정 · 교정 공통)
 pump_fg_ppr: 3             # 펌프 1회전 FG 펄스 (BAP-2445 = 3)
+# 시료 유량계 (16.7 · 2026-11-19)
+sample_flow_low_lpm: 0.4   # 펌프를 켠 채 이 아래 30 s → SAMPLE_FLOW_LOW (방문 무효)
+cal_flow_min_lpm: 0.3      # 교정 주입 마지막 20 s 평균이 이 아래 → CAL_GAS_LOW · 교정 중단
+flow_checksum: auto        # auto | addr | cmd — XOR 범위 (매뉴얼에 없음, 입고 때 정하면 고정)
 pump_rpm_ref: 0            # PUMP_SPEED 기준 회전수 — 0 이면 이 경보 끔
 pump_rpm_tol_pct: 20
 chime_s: 2                 # 부저 1회 길이 = IOC 출력 8 OutTime (설치 때 IOC 에 넣는 값 · 급이 차임 없음)
