@@ -107,21 +107,22 @@ zero_tol_co2: 50
 
 # CO₂ Recovery (9.2 · 2026-11-19 임계 오리피스식) — CO₂ 용기 → SV5(IOC 출력 9) → P1 → 오리피스 → 흡입구.
 # 넣은 양(P1 · 관로 온도로 계산)과 관로에서 잰 양으로 풍량 보정계수 FF 를 구함 · 상태 RECOVERY 동안 급이 · 방문 판정 멈춤.
-# 용기 잔량 · 마지막 실행은 데이터 폴더 recovery.json. IOC 출력 9 OutTime 은 설치 때 250 s.
-# site_alt_m: 1900         # 설치 고도 m — 비우면 Recovery 안 함 · 키르기스스탄 현장 약 1,900
+# 용기 잔량 · 마지막 실행 · 화면에서 넣은 설치 고도 · k 는 데이터 폴더 recovery.json — 화면 값이 아래 설정보다 먼저
+# (바꿀 때마다 mtx.db config_history 에 이전 · 이후). IOC 출력 9 OutTime 은 설치 때 250 s.
+# site_alt_m: 1900         # 설치 고도 m (−100~4,000) — 화면(설정값 「CO₂ Recovery」)에서 넣으면 그 값이 먼저 · 둘 다 없으면 Recovery 안 함 · 키르기스스탄 현장 약 1,900
 recovery_enable: true      # false 면 자동 · 수동 모두 안 하고 P1 도 읽지 않음
 recovery_interval_d: 30    # 마지막으로 끝까지 한 Recovery 날짜에서 이 날수 뒤 — 7~90
 recovery_time: "03:00"     # 자동 실행 시각 (현지) — 여기부터 2시간 안 (조건이 안 맞으면 10분마다 다시)
 recovery_release_s: 180    # SV5 열고 방출 — 30~240 (SV5 OutTime 250 s 보다 짧게)
 recovery_wait_s: 180       # 닫고 기준선 회복 대기 — 60~600
 recovery_count: 3          # 방출 횟수 — 1~5 (기본 한 번 약 19분)
-recovery_k: 0.0054         # 오리피스 계수 g·K^0.5/(kPa·s) — Ø0.4 계산 추정값 · 공장 「오리피스 k 확인」 값으로 바꿈
-recovery_k_verified: false # 공장 확인 전 — FF 안 바꿈 (결과만 기록)
+recovery_k: 0.0054         # 오리피스 계수 g·K^0.5/(kPa·s) — Ø0.4 계산 추정값 · 화면(오리피스 k 확인)에서 [k 저장]하면 그 값이 먼저
+recovery_k_verified: false # 공장 확인 전 — FF 안 바꿈 (결과만 기록) · 화면(오리피스 k 확인)에서 저장한 k 가 있으면 확인된 것으로 봄
 recovery_p1_min_kpa: 300   # 방출 5 s 뒤 P1 절대압이 이 아래 → 중단 · RECOVERY_GAS_LOW
 recovery_p1_max_kpa: 450   # P1 게이지가 이 위 → 중단 · RECOVERY_P1 (안전밸브 0.49 MPa 전에)
 recovery_min_temp_c: -10   # 관로 온도가 이 아래면 시작 안 함 (SV5 저온 동작은 시운전 확인)
 recovery_gas_g: 2500       # 새 용기 CO₂ g — [CO₂ 용기 교체] 때 이 값에서 넣은 양을 빼 감 (1회 약 75 g)
-kcheck_s: 90               # 공장 「오리피스 k 확인」 (b) 기준 유량계로 잴 때 1회 방출 s
+kcheck_s: 90               # 공장 「오리피스 k 확인」 (b) 기준 유량계로 잴 때 1회 방출 s — 30~240 (OutTime 250 s 보다 짧게) · 잰 k 를 저장하면 recovery_k 보다 먼저
 
 # 경보 (12장)
 flow_filter_Ls: 26.99
