@@ -9,6 +9,7 @@
 #   5. 시리얼 udev 규칙 템플릿 (/dev/mtx-* 고정 이름)
 #   6. /boot/firmware/config.txt: usb_max_current_enable=1 (CH₄ 센서 USB 5V · USB 허브 · 카메라 · 터치 전원) · RTC 배터리 충전 (재부팅 후 적용) · NTP 켬
 #      + 시각 권한 규칙(polkit) — 앱 설정 「시간 · RTC」 에서 시각을 맞출 수 있게
+#      + 네트워크 권한 규칙(polkit) — 인터넷이 끊기면 앱이 스스로 연결을 다시 걸고 · Wi-Fi 를 껐다 켜고 · Wi-Fi 절전을 끌 수 있게 (2026-11-23)
 #   7. 키오스크: 데스크톱 자동 로그인, 화면 꺼짐 방지
 #   8. systemd 사용자 서비스 -> 부팅 시 앱 자동 시작, 죽으면 5초 뒤 재시작
 #   9. 멈춤 감지 · 재시작은 앱 안 감시(watchdog)가 한다 — 별도 타이머 없음 (예전 methanics-healthcheck 가 있으면 지운다)
@@ -169,6 +170,21 @@ polkit.addRule(function(action, subject) {
 });
 RULES
 chmod 0644 /etc/polkit-1/rules.d/50-methanics-time.rules
+# 인터넷 스스로 복구 (앱 설정 net: · 2026-11-23) — Wi-Fi 는 붙어 있는데 인터넷이 안 되면 앱이 nmcli 로 연결 다시 걸기 · Wi-Fi 끄고 켜기 ·
+# 유선 장치 끊었다 붙이기 · Wi-Fi 절전 끄기(802-11-wireless.powersave 2). 앱은 systemd 사용자 서비스라 화면 세션 밖 → 규칙이 없으면 「권한 없음」
+cat > /etc/polkit-1/rules.d/50-methanics-network.rules <<RULES
+// Methanics HMI: 앱 사용자($APP_USER)가 비밀번호 없이 네트워크 연결을 다시 걸 수 있게 (인터넷 스스로 복구 · Wi-Fi 절전 끄기). install.sh 가 만듦.
+polkit.addRule(function(action, subject) {
+  if ((action.id == "org.freedesktop.NetworkManager.network-control" ||
+       action.id == "org.freedesktop.NetworkManager.enable-disable-wifi" ||
+       action.id == "org.freedesktop.NetworkManager.settings.modify.system" ||
+       action.id == "org.freedesktop.NetworkManager.settings.modify.own") &&
+      subject.user == "$APP_USER") {
+    return polkit.Result.YES;
+  }
+});
+RULES
+chmod 0644 /etc/polkit-1/rules.d/50-methanics-network.rules
 
 # ── 7. 키오스크 ──────────────────────────────────────────────────────────────
 if [[ $KIOSK -eq 1 ]] && command -v raspi-config >/dev/null; then
