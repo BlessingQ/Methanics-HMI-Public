@@ -41,13 +41,14 @@ addresses:
   p1: 31                    # CO₂ Recovery P1 압력 센서 SSG-C — 출하 1 → 설치 전 앞면 키로 Addr 31 · bAUd 9600 · Unit kPa
   # flow: 1                # 시료 유량계 주소 1~128 — 비우면 앱이 훑어 찾고 데이터 폴더 flow.json 에 기억
 
-# 방문 사진 카메라 (Arducam B0448 UVC — 리눅스 기본 드라이버). 앱이 ffmpeg 로 한 장씩 받는다
+# 방문 사진 · 홈 화면 카메라 (Arducam B0448 UVC — 리눅스 기본 드라이버). 앱이 ffmpeg 로 영상을 한 번 열어 홈 화면과 사진이 같이 쓴다
 camera:
   enabled: true
   device: /dev/video0       # 카메라가 하나면 그대로. 바뀌면 /dev/v4l/by-id/usb-…-video-index0
   width: 1920
   height: 1080
-  thumb_width: 480          # 서버로 올리는 대표 사진 축소본 (약 30 KB)
+  thumb_width: 480          # 서버로 올리는 대표 사진 축소본 (약 30 KB). 영상은 서버로 올리지 않음
+  preview_idle_min: 10      # 화면을 이만큼(분) 만지지 않으면 홈 영상을 멈춤 — 만지거나 방문이 시작되면 다시. 0 = 늘 켬
 
 # 운전
 warmup_min: 30
